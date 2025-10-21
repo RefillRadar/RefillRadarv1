@@ -239,8 +239,8 @@ export default function LandingPage() {
                   ))}
                 </div>
                 <p className="text-white mb-8 text-lg leading-relaxed">
-                  "RefillRadar saved me hours of calling pharmacies when my son needed his inhaler during the shortage. 
-                  Found it in stock at 3 locations within minutes!"
+                  &ldquo;RefillRadar saved me hours of calling pharmacies when my son needed his inhaler during the shortage. 
+                  Found it in stock at 3 locations within minutes!&rdquo;
                 </p>
                 <div className="flex items-center">
                   <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mr-4">
@@ -264,8 +264,8 @@ export default function LandingPage() {
                   ))}
                 </div>
                 <p className="text-white mb-8 text-lg leading-relaxed">
-                  "Managing diabetes medications for my elderly mother was stressful until I found RefillRadar. 
-                  Now I can easily compare prices and availability across all local pharmacies."
+                  &ldquo;Managing diabetes medications for my elderly mother was stressful until I found RefillRadar. 
+                  Now I can easily compare prices and availability across all local pharmacies.&rdquo;
                 </p>
                 <div className="flex items-center">
                   <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mr-4">
@@ -289,8 +289,8 @@ export default function LandingPage() {
                   ))}
                 </div>
                 <p className="text-white mb-8 text-lg leading-relaxed">
-                  "As someone with multiple chronic conditions, RefillRadar has been a game-changer. 
-                  I save $200+ monthly by finding the best prices automatically."
+                  &ldquo;As someone with multiple chronic conditions, RefillRadar has been a game-changer. 
+                  I save $200+ monthly by finding the best prices automatically.&rdquo;
                 </p>
                 <div className="flex items-center">
                   <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mr-4">
@@ -391,7 +391,7 @@ export default function LandingPage() {
                       </div>
                       <div>
                         <p className="text-white font-semibold">Smart refill alerts & tracking</p>
-                        <p className="text-gray-400 text-sm">Automatic notifications when it's time to refill</p>
+                        <p className="text-gray-400 text-sm">Automatic notifications when it&apos;s time to refill</p>
                       </div>
                     </div>
                   </div>
