@@ -11,12 +11,14 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-cyan-900 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{
+      background: 'linear-gradient(to bottom right, #1D729E, #155a7a, #0d3a4f)'
+    }}>
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-40 left-40 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-white rounded-full mix-blend-screen filter blur-xl opacity-30 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gray-100 rounded-full mix-blend-screen filter blur-xl opacity-35 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-40 left-40 w-80 h-80 bg-gray-50 rounded-full mix-blend-screen filter blur-xl opacity-25 animate-blob animation-delay-4000"></div>
       </div>
 
       <div className="relative z-10 w-full max-w-md">
@@ -95,14 +97,14 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <Button 
-                type="submit"
-                className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white"
-              >
-                <Link href="/dashboard" className="w-full">
+              <Link href="/dashboard" className="w-full">
+                <Button 
+                  type="submit"
+                  className="w-full glassmorphism glassmorphism-hover text-white border-0 py-3 text-lg font-semibold mt-6"
+                >
                   {isSignUp ? "Create Account" : "Sign In"}
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             </form>
 
             <div className="relative">
@@ -115,7 +117,7 @@ export default function LoginPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="border-white/30 text-white hover:bg-white hover:text-black">
+              <Button className="glassmorphism glassmorphism-hover text-white border-0">
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
@@ -136,7 +138,7 @@ export default function LoginPage() {
                 </svg>
                 Google
               </Button>
-              <Button variant="outline" className="border-white/30 text-white hover:bg-white hover:text-black">
+              <Button className="glassmorphism glassmorphism-hover text-white border-0">
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"

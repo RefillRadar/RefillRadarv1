@@ -91,24 +91,24 @@ export default function LandingPage() {
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     <span className="text-sm" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>
-                      15,000+ medications found this week
+                      Hundreds of searches completed daily
                     </span>
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-center space-x-8 text-white/60">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>50K+</div>
-                    <div className="text-xs uppercase tracking-wide">Happy Patients</div>
+                    <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>1000+</div>
+                    <div className="text-xs uppercase tracking-wide">Satisfied Users</div>
                   </div>
                   <div className="w-px h-8 bg-white/20"></div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>2.5M+</div>
+                    <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>15K+</div>
                     <div className="text-xs uppercase tracking-wide">Pharmacy Calls Made</div>
                   </div>
                   <div className="w-px h-8 bg-white/20"></div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>$12M+</div>
+                    <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>$50K+</div>
                     <div className="text-xs uppercase tracking-wide">Saved by Users</div>
                   </div>
                 </div>

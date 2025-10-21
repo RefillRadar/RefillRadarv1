@@ -62,7 +62,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-cyan-900">
+    <div className="min-h-screen bg-gray-900">
       {/* Header */}
       <header className="bg-black/20 backdrop-blur-lg border-b border-white/10">
         <div className="container mx-auto px-4 py-4">
@@ -86,24 +86,24 @@ export default function Dashboard() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Search Form */}
           <div className="lg:col-span-1">
-            <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Search className="h-6 w-6 text-cyan-400" />
+            <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-600/30 rounded-2xl p-8 text-white">
+              <div className="mb-6">
+                <h3 className="flex items-center space-x-2 text-2xl font-semibold text-white mb-2">
+                  <Search className="h-6 w-6 text-blue-400" />
                   <span>Find Your Medication</span>
-                </CardTitle>
-                <CardDescription className="text-gray-300">
+                </h3>
+                <p className="text-gray-300">
                   Enter your prescription details to find nearby pharmacies
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+                </p>
+              </div>
+              <div className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-200">Medication Name</label>
                   <Input
                     value={medication}
                     onChange={(e) => setMedication(e.target.value)}
                     placeholder="e.g., Lisinopril"
-                    className="bg-white/10 border-white/30 text-white placeholder-gray-400"
+                    className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                   />
                 </div>
 
@@ -113,7 +113,7 @@ export default function Dashboard() {
                     value={dosage}
                     onChange={(e) => setDosage(e.target.value)}
                     placeholder="e.g., 10mg"
-                    className="bg-white/10 border-white/30 text-white placeholder-gray-400"
+                    className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                   />
                 </div>
 
@@ -123,23 +123,30 @@ export default function Dashboard() {
                     value={zipCode}
                     onChange={(e) => setZipCode(e.target.value)}
                     placeholder="12345"
-                    className="bg-white/10 border-white/30 text-white placeholder-gray-400"
+                    className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                   />
                 </div>
 
                 <div className="space-y-4">
-                  <label className="text-sm font-medium text-gray-200">
-                    Search Radius: {radius[0]} miles
-                  </label>
-                  <Slider
-                    value={radius}
-                    onValueChange={setRadius}
-                    max={25}
-                    min={1}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-gray-400">
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm font-medium text-gray-200">
+                      Search Radius
+                    </label>
+                    <span className="text-sm font-semibold text-blue-400 bg-blue-500/20 px-3 py-1 rounded-full border border-blue-400/30">
+                      {radius[0]} miles
+                    </span>
+                  </div>
+                  <div className="px-2">
+                    <Slider
+                      value={radius}
+                      onValueChange={setRadius}
+                      max={25}
+                      min={1}
+                      step={1}
+                      className="w-full slider-enhanced"
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-300 px-2">
                     <span>1 mile</span>
                     <span>25 miles</span>
                   </div>
@@ -147,7 +154,7 @@ export default function Dashboard() {
 
                 <Button 
                   onClick={handleSearch}
-                  className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg rounded-lg"
                   disabled={isSearching}
                 >
                   {isSearching ? (
@@ -166,22 +173,22 @@ export default function Dashboard() {
                 <div className="text-xs text-gray-400 text-center">
                   Found pharmacies will be called automatically to check availability
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Search Results */}
             {searchResults.length > 0 && (
-              <Card className="mt-6 bg-white/10 backdrop-blur-lg border-white/20 text-white">
-                <CardHeader>
-                  <CardTitle>Search Results</CardTitle>
-                  <CardDescription className="text-gray-300">
+              <div className="mt-6 bg-gray-900/50 backdrop-blur-sm border border-gray-600/30 rounded-2xl p-8 text-white">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-semibold text-white mb-2">Search Results</h3>
+                  <p className="text-gray-300">
                     {medication} {dosage} - {searchResults.length} pharmacies checked
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+                  </p>
+                </div>
+                <div>
                   <div className="space-y-3">
                     {searchResults.map((result) => (
-                      <div key={result.id} className="p-3 bg-white/5 rounded-lg border border-white/10">
+                      <div key={result.id} className="p-3 bg-gray-800 rounded-lg border border-gray-600/30">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-medium">{result.name}</h4>
                           <span className={`text-xs px-2 py-1 rounded ${
@@ -207,32 +214,32 @@ export default function Dashboard() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
           </div>
 
           {/* Map */}
           <div className="lg:col-span-2">
-            <Card className="bg-white/10 backdrop-blur-lg border-white/20 h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-white">
-                  <MapPin className="h-6 w-6 text-cyan-400" />
+            <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-600/30 rounded-2xl h-full">
+              <div className="p-8 pb-0">
+                <h3 className="flex items-center space-x-2 text-2xl font-semibold text-white mb-2">
+                  <MapPin className="h-6 w-6 text-blue-400" />
                   <span>Pharmacy Locations</span>
-                </CardTitle>
-                <CardDescription className="text-gray-300">
+                </h3>
+                <p className="text-gray-300 mb-6">
                   Pharmacies within {radius[0]} mile radius • Click markers for details
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
+                </p>
+              </div>
+              <div className="p-0">
                 <Map
                   center={mapCenter}
                   zoom={13}
                   radius={radius[0]}
                   pharmacies={pharmacies}
                 />
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -240,22 +247,21 @@ export default function Dashboard() {
       {/* Payment Modal */}
       {showPayment && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CreditCard className="h-6 w-6 text-cyan-400" />
+          <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-600/30 rounded-2xl p-8 text-white w-full max-w-md">
+            <div className="mb-6">
+              <h3 className="flex items-center space-x-2 text-2xl font-semibold text-white mb-2">
+                <CreditCard className="h-6 w-6 text-blue-400" />
                 <span>Choose Payment Option</span>
-              </CardTitle>
-              <CardDescription className="text-gray-300">
+              </h3>
+              <p className="text-gray-300">
                 Select how you&apos;d like to pay for your pharmacy search
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="space-y-4">
               <div className="grid gap-4">
                 <Button
                   onClick={() => handlePaymentChoice('per-search')}
-                  variant="outline"
-                  className="border-white/30 text-white hover:bg-white hover:text-black p-6 h-auto"
+                  className="bg-gray-700 hover:bg-gray-600 text-white border border-gray-600 p-6 h-auto"
                 >
                   <div className="text-center">
                     <div className="text-2xl font-bold mb-2">$1 per pharmacy</div>
@@ -267,7 +273,7 @@ export default function Dashboard() {
 
                 <Button
                   onClick={() => handlePaymentChoice('subscription')}
-                  className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 p-6 h-auto"
+                  className="bg-blue-600 hover:bg-blue-700 text-white p-6 h-auto"
                 >
                   <div className="text-center">
                     <div className="text-2xl font-bold mb-2">$50/month</div>
@@ -280,13 +286,12 @@ export default function Dashboard() {
 
               <Button
                 onClick={() => setShowPayment(false)}
-                variant="ghost"
-                className="w-full text-gray-400 hover:text-white"
+                className="w-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-600/30"
               >
                 Cancel
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
     </div>
