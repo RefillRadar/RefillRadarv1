@@ -3,7 +3,7 @@
 # RefillRadar (PillPilot)
 
 ## 🚀 Overview
-RefillRadar (PillPilot) is an AI-powered caller app that helps users find hard-to-get prescription medications by automatically calling nearby pharmacies to check real-time availability and prices.
+RefillRadar (PillPilot) is an AI-powered web application that helps users find hard-to-get prescription medications by automatically calling nearby pharmacies to check real-time availability and prices.
 
 ## 🧭 Core Idea
 Patients and caregivers often struggle to locate in-stock medications, especially during shortages. PillPilot solves this pain point by using AI voice agents that call pharmacies, ask about medication availability and price, and deliver ranked, reliable results to users—all without manual phone calls.
