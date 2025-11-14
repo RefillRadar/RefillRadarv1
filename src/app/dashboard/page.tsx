@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import dynamic from 'next/dynamic'
 import { Heart, MapPin, Search, DollarSign, Clock, CheckCircle, AlertCircle, LogOut, CreditCard } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 // Dynamically import the Map component to avoid SSR issues
 const Map = dynamic(() => import('@/components/map'), {
@@ -24,6 +26,8 @@ const mockPharmacies = [
 ]
 
 export default function Dashboard() {
+  const { user, loading, signOut } = useAuth()
+  const router = useRouter()
   const [zipCode, setZipCode] = useState('')
   const [radius, setRadius] = useState([5])
   const [medication, setMedication] = useState('')
@@ -33,6 +37,29 @@ export default function Dashboard() {
   const [isSearching, setIsSearching] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
   const [searchResults, setSearchResults] = useState<any[]>([])
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login')
+    }
+  }, [user, loading, router])
+
+  const handleSignOut = async () => {
+    await signOut()
+    router.push('/')
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
 
   const handleSearch = async () => {
     if (!medication || !zipCode) {
@@ -72,8 +99,14 @@ export default function Dashboard() {
               <span className="text-2xl font-bold">RefillRadar</span>
             </Link>
             <div className="flex items-center space-x-4">
-              <span className="text-white">Welcome back, John!</span>
-              <Button variant="ghost" className="text-white hover:text-red-300">
+              <span className="text-white">
+                Welcome back, {user.user_metadata?.full_name || user.email}!
+              </span>
+              <Button 
+                onClick={handleSignOut}
+                variant="ghost" 
+                className="text-white hover:text-red-300"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
               </Button>
