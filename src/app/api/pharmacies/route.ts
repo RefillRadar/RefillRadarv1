@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 // Helper function to get coordinates from zipcode
 async function getCoordinatesFromZipcode(zipcode: string) {
   const geocodingUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${zipcode}&key=${process.env.GOOGLE_PLACES_API_KEY}`
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = request.nextUrl
     const zipcode = searchParams.get('zipcode')
     const radius = parseInt(searchParams.get('radius') || '10')
 
@@ -74,9 +76,9 @@ export async function GET(request: NextRequest) {
     // Search for pharmacies
     const places = await searchPharmaciesNearby(coordinates.lat, coordinates.lng, radius)
     
-    // Get detailed information for each pharmacy
-    const pharmacies = await Promise.all(
-      places.slice(0, 20).map(async (place: any) => {
+    // Get detailed information for each pharmacy and filter by actual distance
+    const allPharmacies = await Promise.all(
+      places.slice(0, 60).map(async (place: any) => { // Get more results to filter
         const details = await getPlaceDetails(place.place_id)
         
         // Calculate distance from center point
@@ -106,6 +108,9 @@ export async function GET(request: NextRequest) {
         }
       })
     )
+
+    // Filter pharmacies by the requested radius
+    const pharmacies = allPharmacies.filter(pharmacy => pharmacy.distance <= radius)
 
     // Sort by distance
     pharmacies.sort((a, b) => a.distance - b.distance)

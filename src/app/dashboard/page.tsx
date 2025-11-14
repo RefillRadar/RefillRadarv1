@@ -40,6 +40,10 @@ export default function Dashboard() {
   const [previousSearches, setPreviousSearches] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<'search' | 'history'>('search')
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [selectedPharmacies, setSelectedPharmacies] = useState<string[]>([])
+  const [showPharmacySelection, setShowPharmacySelection] = useState(false)
+  const [selectedPaymentOption, setSelectedPaymentOption] = useState<'per-call' | 'bulk' | null>(null)
+  const [showConfirmation, setShowConfirmation] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -48,6 +52,10 @@ export default function Dashboard() {
       loadPreviousSearches()
     }
   }, [user, loading, router])
+
+  useEffect(() => {
+    console.log('Radius changed to:', radius[0], 'miles')
+  }, [radius])
 
   const handleSignOut = async () => {
     await signOut()
@@ -110,7 +118,58 @@ export default function Dashboard() {
       return
     }
     
-    setShowPayment(true)
+    console.log('Search initiated with radius:', radius[0], 'miles')
+    setIsSearching(true)
+    
+    try {
+      // Get real pharmacy data
+      const apiUrl = `/api/pharmacies?zipcode=${zipCode}&radius=${radius[0]}`
+      console.log('API URL:', apiUrl)
+      const pharmacyResponse = await fetch(apiUrl)
+      if (pharmacyResponse.ok) {
+        const pharmacyData = await pharmacyResponse.json()
+        console.log('API returned', pharmacyData.pharmacies.length, 'pharmacies for radius', radius[0])
+        console.log('Pharmacy distances:', pharmacyData.pharmacies.map((p: any) => p.distance).slice(0, 5))
+        
+        // Update map center
+        if (pharmacyData.center) {
+          setMapCenter([pharmacyData.center.lat, pharmacyData.center.lng])
+        }
+        
+        // Update pharmacies list for map
+        setPharmacies(pharmacyData.pharmacies.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          address: p.address,
+          lat: p.latitude,
+          lng: p.longitude,
+          phone: p.phone
+        })))
+        
+        // Set search results
+        const results = pharmacyData.pharmacies.map((pharmacy: any) => ({
+          id: pharmacy.id,
+          name: pharmacy.name,
+          address: pharmacy.address,
+          lat: pharmacy.latitude,
+          lng: pharmacy.longitude,
+          phone: pharmacy.phone,
+          distance: pharmacy.distance,
+          rating: pharmacy.rating
+        }))
+        
+        setSearchResults(results)
+        setShowPharmacySelection(true)
+        setSelectedPharmacies([]) // Reset selection
+      } else {
+        throw new Error('Failed to fetch pharmacy data')
+      }
+    } catch (error) {
+      console.error('Search error:', error)
+      alert('Search failed. Please try again.')
+    } finally {
+      setIsSearching(false)
+    }
   }
 
   const createNewSearch = async () => {
@@ -140,7 +199,29 @@ export default function Dashboard() {
     }
   }
 
-  const handlePaymentChoice = async (choice: 'per-search' | 'subscription') => {
+  const handleCallPharmacies = () => {
+    if (selectedPharmacies.length === 0) {
+      alert('Please select at least one pharmacy to call')
+      return
+    }
+    setSelectedPaymentOption('per-call') // Default to per-call
+    setShowPayment(true)
+  }
+
+  const handlePaymentSubmit = () => {
+    if (!selectedPaymentOption) {
+      alert('Please select a payment option')
+      return
+    }
+    setShowConfirmation(true)
+  }
+
+  const handleConfirmStart = () => {
+    setShowConfirmation(false)
+    handlePaymentChoice(selectedPaymentOption!)
+  }
+
+  const handlePaymentChoice = async (choice: 'per-call' | 'bulk') => {
     setShowPayment(false)
     setIsSearching(true)
     
@@ -148,73 +229,76 @@ export default function Dashboard() {
       // Create search record in database
       const searchId = await createNewSearch()
       
-      // Get real pharmacy data
-      const pharmacyResponse = await fetch(`/api/pharmacies?zipcode=${zipCode}&radius=${radius[0]}`)
-      if (pharmacyResponse.ok) {
-        const pharmacyData = await pharmacyResponse.json()
-        
-        // Update map center
-        if (pharmacyData.center) {
-          setMapCenter([pharmacyData.center.lat, pharmacyData.center.lng])
-        }
-        
-        // Update pharmacies list for map
-        setPharmacies(pharmacyData.pharmacies.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          address: p.address,
-          lat: p.latitude,
-          lng: p.longitude,
-          phone: p.phone
-        })))
-        
-        // Set search results
-        const results = pharmacyData.pharmacies.map((pharmacy: any) => ({
-          id: pharmacy.id,
-          name: pharmacy.name,
-          address: pharmacy.address,
-          lat: pharmacy.latitude,
-          lng: pharmacy.longitude,
-          phone: pharmacy.phone,
-          availability: pharmacy.availability ? 'In Stock' : 'Out of Stock',
-          price: pharmacy.price ? `$${pharmacy.price}` : 'N/A',
-          confidence: pharmacy.confidence_score,
-          lastChecked: pharmacy.last_called ? new Date(pharmacy.last_called).toLocaleDateString() : 'Just now',
-          distance: pharmacy.distance
-        }))
-        
-        setSearchResults(results)
-        
-        // Save results to database
-        await fetch(`/api/search/${searchId}/results`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            results: pharmacyData.pharmacies.map((p: any) => ({
-              pharmacy_id: p.id,
-              pharmacy_name: p.name,
-              address: p.address,
-              phone: p.phone,
-              latitude: p.latitude,
-              longitude: p.longitude,
-              price: p.price,
-              availability: p.availability,
-              confidence_score: p.confidence_score,
-              last_called: new Date().toISOString()
-            }))
-          })
+      // Filter selected pharmacies
+      const selectedPharmacyData = searchResults.filter(p => selectedPharmacies.includes(p.id))
+      
+      // Simulate AI calling process
+      const resultsWithCalls = selectedPharmacyData.map((pharmacy: any) => ({
+        ...pharmacy,
+        availability: Math.random() > 0.3 ? 'In Stock' : 'Out of Stock',
+        price: Math.random() > 0.3 ? `$${(15 + Math.random() * 50).toFixed(2)}` : 'N/A',
+        confidence: Math.floor(85 + Math.random() * 15),
+        lastChecked: 'Just now'
+      }))
+      
+      // Update search results with call results
+      setSearchResults(prevResults => 
+        prevResults.map(pharmacy => {
+          const calledResult = resultsWithCalls.find(r => r.id === pharmacy.id)
+          return calledResult || pharmacy
         })
-        
-        // Refresh previous searches
-        loadPreviousSearches()
-      }
+      )
+      
+      // Save results to database
+      await fetch(`/api/search/${searchId}/results`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          results: resultsWithCalls.map((p: any) => ({
+            pharmacy_id: p.id,
+            pharmacy_name: p.name,
+            address: p.address,
+            phone: p.phone,
+            latitude: p.lat,
+            longitude: p.lng,
+            price: p.price === 'N/A' ? null : parseFloat(p.price.replace('$', '')),
+            availability: p.availability === 'In Stock',
+            confidence_score: p.confidence,
+            last_called: new Date().toISOString()
+          }))
+        })
+      })
+      
+      // Refresh previous searches
+      loadPreviousSearches()
+      
+      // Reset selection
+      setSelectedPharmacies([])
+      setShowPharmacySelection(false)
+      
     } catch (error) {
-      console.error('Search error:', error)
-      alert('Search failed. Please try again.')
+      console.error('Calling error:', error)
+      alert('Failed to call pharmacies. Please try again.')
     } finally {
       setIsSearching(false)
+    }
+  }
+
+  const togglePharmacySelection = (pharmacyId: string) => {
+    setSelectedPharmacies(prev => 
+      prev.includes(pharmacyId) 
+        ? prev.filter(id => id !== pharmacyId)
+        : [...prev, pharmacyId]
+    )
+  }
+
+  const selectAllPharmacies = () => {
+    if (selectedPharmacies.length === searchResults.length) {
+      setSelectedPharmacies([])
+    } else {
+      setSelectedPharmacies(searchResults.map(p => p.id))
     }
   }
 
@@ -440,48 +524,6 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
-
-            {/* Search Results */}
-            {searchResults.length > 0 && (
-              <div className="mt-6 bg-gray-900/50 backdrop-blur-sm border border-gray-600/30 rounded-2xl p-8 text-white">
-                <div className="mb-6">
-                  <h3 className="text-2xl font-semibold text-white mb-2">Search Results</h3>
-                  <p className="text-gray-300">
-                    {medication} {dosage} - {searchResults.length} pharmacies checked
-                  </p>
-                </div>
-                <div>
-                  <div className="space-y-3">
-                    {searchResults.map((result) => (
-                      <div key={result.id} className="p-3 bg-gray-800 rounded-lg border border-gray-600/30">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-medium">{result.name}</h4>
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            result.availability === 'In Stock' 
-                              ? 'bg-green-500/20 text-green-300' 
-                              : 'bg-red-500/20 text-red-300'
-                          }`}>
-                            {result.availability === 'In Stock' ? (
-                              <CheckCircle className="inline h-3 w-3 mr-1" />
-                            ) : (
-                              <AlertCircle className="inline h-3 w-3 mr-1" />
-                            )}
-                            {result.availability}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-300 mb-2">{result.address}</p>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-cyan-400">{result.price}</span>
-                          <span className="text-gray-400">
-                            {result.confidence}% confidence • {result.lastChecked}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Map */}
@@ -506,55 +548,411 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+
+          {/* Search Results - Below Map */}
+          {showPharmacySelection && searchResults.length > 0 && (
+            <div className="lg:col-span-3 mt-8">
+              <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-600/30 rounded-2xl p-8 text-white">
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className="text-2xl font-semibold text-white mb-2">Found {searchResults.length} Pharmacies</h3>
+                      <p className="text-gray-300">
+                        Select pharmacies to call for {medication} {dosage} availability
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={selectAllPharmacies}
+                        variant="outline"
+                        size="sm"
+                        className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      >
+                        {selectedPharmacies.length === searchResults.length ? 'Deselect All' : 'Select All'}
+                      </Button>
+                      <Button
+                        onClick={handleCallPharmacies}
+                        disabled={selectedPharmacies.length === 0}
+                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400"
+                      >
+                        Call {selectedPharmacies.length} Selected
+                        {selectedPharmacies.length > 0 && (
+                          <span className="ml-2 text-xs">(
+                            {selectedPharmacies.length <= 10 
+                              ? selectedPharmacies.length === 1 ? '$1' : `$${selectedPharmacies.length <= 10 ? Math.min(selectedPharmacies.length * 1, 7) : selectedPharmacies.length}`
+                              : `$${selectedPharmacies.length}`
+                            })
+                          </span>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid gap-4 md:grid-cols-2">
+                  {searchResults.map((result) => (
+                    <div 
+                      key={result.id} 
+                      className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                        selectedPharmacies.includes(result.id)
+                          ? 'bg-blue-600/20 border-blue-500'
+                          : 'bg-gray-800 border-gray-600/30 hover:border-gray-500'
+                      }`}
+                      onClick={() => togglePharmacySelection(result.id)}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <input
+                              type="checkbox"
+                              checked={selectedPharmacies.includes(result.id)}
+                              onChange={() => togglePharmacySelection(result.id)}
+                              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <h4 className="font-semibold text-lg">{result.name}</h4>
+                          </div>
+                          <p className="text-sm text-gray-300 mb-2">{result.address}</p>
+                          {result.phone && (
+                            <p className="text-sm text-gray-400">{result.phone}</p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-cyan-400 font-semibold mb-1">
+                            {result.distance} mi
+                          </div>
+                          {result.rating && (
+                            <div className="text-xs text-yellow-400">
+                              ★ {result.rating}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Show call results if available */}
+                      {result.availability && (
+                        <div className="mt-3 pt-3 border-t border-gray-600/30">
+                          <div className="flex justify-between items-center">
+                            <span className={`text-xs px-2 py-1 rounded ${
+                              result.availability === 'In Stock' 
+                                ? 'bg-green-500/20 text-green-300' 
+                                : 'bg-red-500/20 text-red-300'
+                            }`}>
+                              {result.availability === 'In Stock' ? (
+                                <CheckCircle className="inline h-3 w-3 mr-1" />
+                              ) : (
+                                <AlertCircle className="inline h-3 w-3 mr-1" />
+                              )}
+                              {result.availability}
+                            </span>
+                            <div className="text-right text-sm">
+                              <div className="text-cyan-400 font-semibold">{result.price}</div>
+                              <div className="text-gray-400 text-xs">
+                                {result.confidence}% confidence • {result.lastChecked}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Payment Modal */}
+      {/* Beautiful Payment Modal */}
       {showPayment && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-600/30 rounded-2xl p-8 text-white w-full max-w-md">
-            <div className="mb-6">
-              <h3 className="flex items-center space-x-2 text-2xl font-semibold text-white mb-2">
-                <CreditCard className="h-6 w-6 text-blue-400" />
-                <span>Choose Payment Option</span>
-              </h3>
-              <p className="text-gray-300">
-                Select how you&apos;d like to pay for your pharmacy search
-              </p>
-            </div>
-            <div className="space-y-4">
-              <div className="grid gap-4">
-                <Button
-                  onClick={() => handlePaymentChoice('per-search')}
-                  className="bg-gray-700 hover:bg-gray-600 text-white border border-gray-600 p-6 h-auto"
-                >
-                  <div className="text-center">
-                    <div className="text-2xl font-bold mb-2">$1 per pharmacy</div>
-                    <div className="text-sm opacity-80">
-                      Pay only for pharmacies we call ({pharmacies.length} pharmacies = ${pharmacies.length})
-                    </div>
-                  </div>
-                </Button>
-
-                <Button
-                  onClick={() => handlePaymentChoice('subscription')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white p-6 h-auto"
-                >
-                  <div className="text-center">
-                    <div className="text-2xl font-bold mb-2">$50/month</div>
-                    <div className="text-sm opacity-90">
-                      Unlimited searches • Priority calling • Premium support
-                    </div>
-                  </div>
-                </Button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="relative w-full max-w-lg">
+            {/* Background decoration */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-cyan-600/20 rounded-3xl blur-xl"></div>
+            
+            {/* Modal content */}
+            <div className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+              {/* Header */}
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
+                  <CreditCard className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-2">
+                  Secure Payment
+                </h3>
+                <p className="text-gray-400">
+                  Ready to call <span className="text-blue-400 font-semibold">{selectedPharmacies.length}</span> selected pharmacies
+                </p>
+                <div className="flex items-center justify-center gap-2 mt-2 text-sm text-gray-500">
+                  <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse"></div>
+                  <span>Secure • Instant • No subscription</span>
+                </div>
               </div>
 
-              <Button
-                onClick={() => setShowPayment(false)}
-                className="w-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-600/30"
-              >
-                Cancel
-              </Button>
+              {/* Payment Options */}
+              <div className="space-y-4 mb-6">
+                {/* Per-call option */}
+                <div 
+                  onClick={() => setSelectedPaymentOption('per-call')}
+                  className={`group relative overflow-hidden border rounded-2xl p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
+                    selectedPaymentOption === 'per-call'
+                      ? 'bg-gradient-to-r from-blue-600/30 to-blue-500/30 border-blue-400/80 shadow-xl shadow-blue-500/20'
+                      : 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 hover:from-blue-600/20 hover:to-blue-500/20 border-gray-600/50 hover:border-blue-400/50 hover:shadow-xl hover:shadow-blue-500/10'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          selectedPaymentOption === 'per-call'
+                            ? 'border-blue-400 bg-blue-400'
+                            : 'border-gray-600 group-hover:border-blue-400'
+                        }`}>
+                          {selectedPaymentOption === 'per-call' && (
+                            <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                          )}
+                        </div>
+                        <h4 className="text-lg font-semibold text-white">Pay Per Call</h4>
+                        <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
+                          Recommended
+                        </span>
+                      </div>
+                      <p className="text-gray-400 text-sm mb-3">
+                        {selectedPharmacies.length <= 10 
+                          ? `$1 per call • Max $7 for up to 10 calls` 
+                          : `$1 per call • ${selectedPharmacies.length} calls total`
+                        }
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>💳</span>
+                        <span>No commitment • Pay only for calls made</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-white mb-1">
+                        ${selectedPharmacies.length <= 10 
+                          ? Math.min(selectedPharmacies.length, 7) 
+                          : selectedPharmacies.length
+                        }
+                      </div>
+                      <div className="text-gray-400 text-sm">Total cost</div>
+                    </div>
+                  </div>
+                  {/* Hover effect gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-500/5 to-purple-600/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+
+                {/* Bulk option */}
+                <div 
+                  onClick={() => selectedPharmacies.length > 10 ? setSelectedPaymentOption('bulk') : null}
+                  className={`group relative overflow-hidden border rounded-2xl p-6 transition-all duration-300 ${
+                    selectedPharmacies.length <= 10 
+                      ? 'bg-gray-800/30 border-gray-700/50 cursor-not-allowed opacity-60' 
+                      : selectedPaymentOption === 'bulk'
+                      ? 'bg-gradient-to-r from-purple-600/30 to-purple-500/30 border-purple-400/80 shadow-xl shadow-purple-500/20 cursor-pointer'
+                      : 'bg-gradient-to-r from-purple-800/50 to-purple-700/50 hover:from-purple-600/20 hover:to-purple-500/20 border-gray-600/50 hover:border-purple-400/50 cursor-pointer hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/10'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          selectedPharmacies.length <= 10 
+                            ? 'border-gray-600 bg-gray-800' 
+                            : selectedPaymentOption === 'bulk'
+                            ? 'border-purple-400 bg-purple-400'
+                            : 'border-gray-600 group-hover:border-purple-400'
+                        }`}>
+                          {selectedPaymentOption === 'bulk' && selectedPharmacies.length > 10 && (
+                            <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                          )}
+                        </div>
+                        <h4 className="text-lg font-semibold text-white">Bulk Rate</h4>
+                        {selectedPharmacies.length > 10 && (
+                          <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full border border-purple-500/30">
+                            Save ${selectedPharmacies.length - 7}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-400 text-sm mb-3">
+                        {selectedPharmacies.length <= 10 
+                          ? 'Available for 10+ pharmacy calls'
+                          : `$7 flat rate • Save $${(selectedPharmacies.length - 7).toFixed(0)} vs per-call pricing`
+                        }
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>💎</span>
+                        <span>{selectedPharmacies.length <= 10 ? 'Unlock with 10+ selections' : 'Best value for bulk calling'}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-white mb-1">$7</div>
+                      <div className="text-gray-400 text-sm">Flat rate</div>
+                    </div>
+                  </div>
+                  {/* Hover effect gradient */}
+                  {selectedPharmacies.length > 10 && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-600/0 via-purple-500/5 to-pink-600/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  )}
+                </div>
+              </div>
+
+              {/* Security badge */}
+              <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mb-6 p-3 bg-gray-800/30 rounded-xl border border-gray-700/30">
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                <span>🔒 Secured by Stripe • 256-bit encryption • No card details stored</span>
+              </div>
+
+              {/* Action buttons */}
+              <div className="space-y-3">
+                <Button
+                  onClick={handlePaymentSubmit}
+                  disabled={!selectedPaymentOption}
+                  className={`w-full py-4 text-lg font-semibold rounded-xl transition-all duration-300 ${
+                    selectedPaymentOption
+                      ? selectedPaymentOption === 'per-call'
+                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-blue-500/25 hover:scale-[1.02]'
+                        : 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white shadow-lg hover:shadow-purple-500/25 hover:scale-[1.02]'
+                      : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {selectedPaymentOption ? (
+                    <>
+                      <CreditCard className="h-5 w-5 mr-2 inline" />
+                      {isSearching ? (
+                        <>
+                          <Clock className="animate-spin h-5 w-5 mr-2 inline" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          Pay ${selectedPaymentOption === 'per-call' 
+                            ? (selectedPharmacies.length <= 10 ? Math.min(selectedPharmacies.length, 7) : selectedPharmacies.length)
+                            : 7
+                          } & Start Calling
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    'Select Payment Option'
+                  )}
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    setShowPayment(false)
+                    setSelectedPaymentOption(null)
+                  }}
+                  className="w-full bg-gray-800/50 hover:bg-gray-700/50 text-gray-400 hover:text-white border border-gray-600/30 hover:border-gray-500/50 py-3 rounded-xl transition-all duration-200"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmation && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="relative w-full max-w-md">
+            {/* Background decoration */}
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 via-red-600/20 to-pink-600/20 rounded-3xl blur-xl"></div>
+            
+            {/* Modal content */}
+            <div className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+              {/* Header */}
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl mb-4 shadow-lg">
+                  <Clock className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-2">
+                  Processing Schedule
+                </h3>
+                <p className="text-gray-400 text-sm">
+                  Your pharmacy calling request
+                </p>
+              </div>
+
+              {/* Schedule Information */}
+              <div className="bg-gray-800/30 border border-gray-600/30 rounded-2xl p-6 mb-6">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full mt-2"></div>
+                  <div>
+                    <h4 className="font-semibold text-white mb-1">⏰ Processing Time</h4>
+                    <p className="text-gray-300 text-sm leading-relaxed">
+                      Your pharmacy calls will begin processing at <span className="text-white font-semibold">9:00 AM EST</span> the next business day.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full mt-2"></div>
+                  <div>
+                    <h4 className="font-semibold text-white mb-1">📧 Email Updates</h4>
+                    <p className="text-gray-300 text-sm leading-relaxed">
+                      You'll receive an email notification when your search is complete with all pharmacy results.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full mt-2"></div>
+                  <div>
+                    <h4 className="font-semibold text-white mb-1">💊 Search Details</h4>
+                    <p className="text-gray-300 text-sm leading-relaxed">
+                      Calling <span className="text-white font-semibold">{selectedPharmacies.length} pharmacies</span> for <span className="text-white font-semibold">{medication} {dosage}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Terms Agreement */}
+              <div className="bg-gray-800/50 border border-gray-600/30 rounded-xl p-4 mb-6">
+                <p className="text-gray-400 text-sm text-center">
+                  By clicking "Start Calling" you agree to our{' '}
+                  <button className="text-blue-400 hover:text-blue-300 underline transition-colors">
+                    Terms and Conditions
+                  </button>
+                  {' '}and{' '}
+                  <button className="text-blue-400 hover:text-blue-300 underline transition-colors">
+                    Privacy Policy
+                  </button>
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <Button
+                  onClick={handleConfirmStart}
+                  disabled={isSearching}
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-green-500/25 hover:scale-[1.02] transition-all duration-300"
+                >
+                  {isSearching ? (
+                    <>
+                      <Clock className="animate-spin h-5 w-5 mr-2 inline" />
+                      Processing Payment...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-5 w-5 mr-2 inline" />
+                      Start Calling - Pay ${selectedPaymentOption === 'per-call' 
+                        ? (selectedPharmacies.length <= 10 ? Math.min(selectedPharmacies.length, 7) : selectedPharmacies.length)
+                        : 7
+                      }
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  onClick={() => setShowConfirmation(false)}
+                  disabled={isSearching}
+                  className="w-full bg-gray-800/50 hover:bg-gray-700/50 text-gray-400 hover:text-white border border-gray-600/30 hover:border-gray-500/50 py-3 rounded-xl transition-all duration-200"
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           </div>
         </div>

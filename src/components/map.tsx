@@ -39,8 +39,10 @@ export default function Map({ center, zoom, radius, pharmacies }: MapProps) {
       if (!mapInstanceRef.current && mapRef.current) {
         mapInstanceRef.current = L.map(mapRef.current).setView(center, zoom)
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
+        // Use dark theme map tiles
+        L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
+          attribution: '© Stadia Maps, © OpenMapTiles, © OpenStreetMap contributors',
+          maxZoom: 20
         }).addTo(mapInstanceRef.current)
       }
 
@@ -53,31 +55,144 @@ export default function Map({ center, zoom, radius, pharmacies }: MapProps) {
         }
       })
 
-      // Add radius circle
+      // Add radius circle with modern styling
       L.circle(center, {
-        color: '#06b6d4',
-        fillColor: '#06b6d4',
-        fillOpacity: 0.1,
+        color: '#3b82f6',
+        fillColor: '#3b82f6',
+        fillOpacity: 0.08,
+        weight: 2,
+        opacity: 0.8,
         radius: radius * 1609.34 // Convert miles to meters
       }).addTo(map)
 
-      // Add center marker
-      L.marker(center).addTo(map)
-        .bindPopup('Your Location')
+      // Add custom center marker
+      const centerIcon = L.divIcon({
+        className: 'custom-center-marker',
+        html: `
+          <div style="
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            position: relative;
+          ">
+            <div style="
+              position: absolute;
+              top: -8px;
+              left: -8px;
+              width: 12px;
+              height: 12px;
+              background: #3b82f6;
+              border-radius: 50%;
+              animation: pulse 2s infinite;
+            "></div>
+          </div>
+        `,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      })
+      
+      L.marker(center, { icon: centerIcon }).addTo(map)
+        .bindPopup(`
+          <div style="
+            background: linear-gradient(135deg, #1f2937, #374151);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-family: system-ui;
+          ">
+            <h3 style="margin: 0 0 4px 0; font-weight: 600; color: #60a5fa;">📍 Search Center</h3>
+            <p style="margin: 0; font-size: 13px; color: #d1d5db;">Zip: ${mapRef.current?.dataset?.zipcode || 'Unknown'}</p>
+            <p style="margin: 2px 0 0 0; font-size: 13px; color: #d1d5db;">Radius: ${radius} miles</p>
+          </div>
+        `, {
+          className: 'custom-popup'
+        })
 
-      // Add pharmacy markers
+      // Add custom pharmacy markers
       pharmacies.forEach(pharmacy => {
-        const marker = L.marker([pharmacy.lat, pharmacy.lng]).addTo(map)
+        // Custom pharmacy icon
+        const pharmacyIcon = L.divIcon({
+          className: 'custom-pharmacy-marker',
+          html: `
+            <div style="
+              background: linear-gradient(135deg, #10b981, #059669);
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              border: 3px solid white;
+              box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 16px;
+              transition: all 0.3s ease;
+            " onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 4px 20px rgba(16, 185, 129, 0.4)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 3px 12px rgba(0,0,0,0.4)'">
+              💊
+            </div>
+          `,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        })
+        
+        const marker = L.marker([pharmacy.lat, pharmacy.lng], { icon: pharmacyIcon }).addTo(map)
         
         const popupContent = `
-          <div>
-            <h3 style="margin: 0 0 8px 0; font-weight: bold;">${pharmacy.name}</h3>
-            <p style="margin: 0 0 4px 0; font-size: 14px;">${pharmacy.address}</p>
-            ${pharmacy.phone ? `<p style="margin: 0; font-size: 14px;">📞 ${pharmacy.phone}</p>` : ''}
+          <div style="
+            background: linear-gradient(135deg, #1f2937, #374151);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            border: none;
+            font-family: system-ui;
+            min-width: 250px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+          ">
+            <h3 style="
+              margin: 0 0 8px 0;
+              font-weight: 600;
+              font-size: 16px;
+              color: #10b981;
+              display: flex;
+              align-items: center;
+              gap: 6px;
+            ">💊 ${pharmacy.name}</h3>
+            <p style="
+              margin: 0 0 8px 0;
+              font-size: 14px;
+              color: #d1d5db;
+              line-height: 1.4;
+            ">📍 ${pharmacy.address}</p>
+            ${pharmacy.phone ? `
+              <p style="
+                margin: 0 0 8px 0;
+                font-size: 14px;
+                color: #60a5fa;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+              ">📞 ${pharmacy.phone}</p>
+            ` : ''}
+            <div style="
+              margin-top: 12px;
+              padding-top: 8px;
+              border-top: 1px solid #4b5563;
+              font-size: 12px;
+              color: #9ca3af;
+            ">
+              <span style="background: #374151; padding: 2px 6px; border-radius: 4px;">Click to select for calling</span>
+            </div>
           </div>
         `
         
-        marker.bindPopup(popupContent)
+        marker.bindPopup(popupContent, {
+          className: 'custom-popup',
+          maxWidth: 300,
+          closeButton: true
+        })
       })
 
       // Fit map to show all markers if there are pharmacies
@@ -109,10 +224,49 @@ export default function Map({ center, zoom, radius, pharmacies }: MapProps) {
         integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
         crossOrigin=""
       />
+      <style jsx global>{`
+        .custom-popup .leaflet-popup-content-wrapper {
+          background: transparent !important;
+          padding: 0 !important;
+          border-radius: 12px !important;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+        }
+        .custom-popup .leaflet-popup-tip {
+          background: #1f2937 !important;
+          border: none !important;
+        }
+        .custom-popup .leaflet-popup-close-button {
+          color: #9ca3af !important;
+          font-size: 18px !important;
+          padding: 8px !important;
+        }
+        .custom-popup .leaflet-popup-close-button:hover {
+          color: #f3f4f6 !important;
+          background: rgba(75, 85, 99, 0.3) !important;
+          border-radius: 4px;
+        }
+        @keyframes pulse {
+          0% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.5);
+            opacity: 0.3;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+      `}</style>
       <div 
         ref={mapRef} 
-        className="w-full h-full min-h-[400px] rounded-lg"
-        style={{ minHeight: '400px' }}
+        className="w-full h-full min-h-[400px] rounded-lg overflow-hidden"
+        style={{ 
+          minHeight: '400px',
+          background: 'linear-gradient(135deg, #1f2937, #374151)'
+        }}
       />
     </>
   )
