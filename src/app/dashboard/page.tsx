@@ -159,7 +159,7 @@ export default function Dashboard() {
     }
   }
 
-  const useSavedMedicine = (medicine: {name: string, dosage: string}) => {
+  const handleUseSavedMedicine = (medicine: {name: string, dosage: string}) => {
     setMedication(medicine.name)
     setDosage(medicine.dosage)
     setShowSavedMedicines(false)
@@ -1102,7 +1102,7 @@ export default function Dashboard() {
                   <div>
                     <h4 className="font-semibold text-white mb-1">📧 Email Updates</h4>
                     <p className="text-gray-300 text-sm leading-relaxed">
-                      You'll receive an email notification when your search is complete with all pharmacy results.
+                      You&apos;ll receive an email notification when your search is complete with all pharmacy results.
                     </p>
                   </div>
                 </div>
@@ -1121,7 +1121,7 @@ export default function Dashboard() {
               {/* Terms Agreement */}
               <div className="bg-gray-800/50 border border-gray-600/30 rounded-xl p-4 mb-6">
                 <p className="text-gray-400 text-sm text-center">
-                  By clicking "Start Calling" you agree to our{' '}
+                  By clicking &quot;Start Calling&quot; you agree to our{' '}
                   <button className="text-blue-400 hover:text-blue-300 underline transition-colors">
                     Terms and Conditions
                   </button>
@@ -1205,7 +1205,7 @@ export default function Dashboard() {
                     {savedMedicines.map((medicine) => (
                       <div
                         key={medicine.id}
-                        onClick={() => useSavedMedicine(medicine)}
+                        onClick={() => handleUseSavedMedicine(medicine)}
                         className="group bg-gray-800/50 hover:bg-blue-600/20 border border-gray-600/30 hover:border-blue-400/50 rounded-xl p-4 cursor-pointer transition-all duration-200 hover:scale-[1.02]"
                       >
                         <div className="flex justify-between items-start">
