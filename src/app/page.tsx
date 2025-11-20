@@ -3,11 +3,34 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Heart, MapPin, Phone, DollarSign, CheckCircle, Star, Clock, Shield, Bell } from "lucide-react"
-import { useState } from "react"
+import { Heart, MapPin, Phone, DollarSign, CheckCircle, Star, Clock, Shield, Bell, LogOut, User } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function LandingPage() {
   const [selectedPlan, setSelectedPlan] = useState('premium')
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
+  const { user, loading, signOut } = useAuth()
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const handleSignOut = async () => {
+    await signOut()
+    setShowUserDropdown(false)
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
   
   return (
     <div className="min-h-screen">
@@ -37,19 +60,67 @@ export default function LandingPage() {
                 <span className="text-2xl font-bold text-white">RefillRadar</span>
               </div>
               <div className="flex items-center space-x-4">
-                <Link href="/login">
-                  <Button 
-                    variant="ghost" 
-                    className="glassmorphism glassmorphism-hover text-white px-6 border-0"
-                  >
-                    LOG IN
-                  </Button>
-                </Link>
-                <Link href="/login">
-                  <Button className="glassmorphism glassmorphism-hover text-white px-6 border-0">
-                    GET STARTED
-                  </Button>
-                </Link>
+                {loading ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  </div>
+                ) : user ? (
+                  <div className="relative" ref={dropdownRef}>
+                    <Button 
+                      onClick={() => setShowUserDropdown(!showUserDropdown)}
+                      variant="ghost" 
+                      className="glassmorphism glassmorphism-hover text-white px-4 py-2 border-0 flex items-center space-x-2"
+                    >
+                      <User className="h-4 w-4" />
+                      <span className="hidden sm:inline">
+                        {user.user_metadata?.full_name || user.email?.split('@')[0] || 'Account'}
+                      </span>
+                      <svg className={`w-4 h-4 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </Button>
+                    
+                    {showUserDropdown && (
+                      <div className="absolute right-0 mt-2 w-56 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl shadow-xl py-2 z-50">
+                        <div className="px-4 py-2 border-b border-white/20">
+                          <p className="text-white font-semibold text-sm">
+                            {user.user_metadata?.full_name || 'User'}
+                          </p>
+                          <p className="text-white/60 text-xs">{user.email}</p>
+                        </div>
+                        <Link href="/dashboard">
+                          <button className="w-full text-left px-4 py-2 text-white hover:bg-white/10 transition-colors flex items-center space-x-2">
+                            <Heart className="h-4 w-4" />
+                            <span>Dashboard</span>
+                          </button>
+                        </Link>
+                        <button 
+                          onClick={handleSignOut}
+                          className="w-full text-left px-4 py-2 text-white hover:bg-white/10 transition-colors flex items-center space-x-2"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <Link href="/login">
+                      <Button 
+                        variant="ghost" 
+                        className="glassmorphism glassmorphism-hover text-white px-6 border-0"
+                      >
+                        LOG IN
+                      </Button>
+                    </Link>
+                    <Link href="/login">
+                      <Button className="glassmorphism glassmorphism-hover text-white px-6 border-0">
+                        GET STARTED
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </nav>
           </header>

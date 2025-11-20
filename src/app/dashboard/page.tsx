@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { createPortal } from "react-dom"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import dynamic from 'next/dynamic'
-import { Heart, MapPin, Search, DollarSign, Clock, CheckCircle, AlertCircle, LogOut, CreditCard, History, RefreshCw } from "lucide-react"
+import { Heart, MapPin, Search, DollarSign, Clock, CheckCircle, AlertCircle, LogOut, CreditCard, History, RefreshCw, User } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 // Dynamically import the Map component to avoid SSR issues
@@ -44,12 +45,19 @@ export default function Dashboard() {
   const [showPharmacySelection, setShowPharmacySelection] = useState(false)
   const [selectedPaymentOption, setSelectedPaymentOption] = useState<'per-call' | 'bulk' | null>(null)
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const [savedMedicines, setSavedMedicines] = useState<Array<{id: string, name: string, dosage: string, lastUsed: string}>>([])
+  const [showSavedMedicines, setShowSavedMedicines] = useState(false)
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 })
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login')
     } else if (user) {
       loadPreviousSearches()
+      loadSavedMedicines()
     }
   }, [user, loading, router])
 
@@ -57,8 +65,23 @@ export default function Dashboard() {
     console.log('Radius changed to:', radius[0], 'miles')
   }, [radius])
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   const handleSignOut = async () => {
     await signOut()
+    setShowUserDropdown(false)
     router.push('/')
   }
 
@@ -75,6 +98,74 @@ export default function Dashboard() {
     } finally {
       setLoadingHistory(false)
     }
+  }
+
+  const loadSavedMedicines = async () => {
+    try {
+      const response = await fetch('/api/saved-medicines')
+      if (response.ok) {
+        const data = await response.json()
+        setSavedMedicines(data.medicines || [])
+      }
+    } catch (error) {
+      console.error('Failed to load saved medicines:', error)
+      // For now, use mock data
+      setSavedMedicines([
+        { id: '1', name: 'Lisinopril', dosage: '10mg', lastUsed: new Date().toISOString() },
+        { id: '2', name: 'Metformin', dosage: '500mg', lastUsed: new Date(Date.now() - 86400000).toISOString() },
+        { id: '3', name: 'Atorvastatin', dosage: '20mg', lastUsed: new Date(Date.now() - 172800000).toISOString() }
+      ])
+    }
+  }
+
+  const saveMedicine = async (medicineName: string, medicineADosage: string) => {
+    try {
+      const medicineId = `${medicineName}-${medicineADosage}`.toLowerCase().replace(/\s+/g, '-')
+      
+      // Check if already saved
+      const existingMedicine = savedMedicines.find(m => 
+        m.name.toLowerCase() === medicineName.toLowerCase() && 
+        m.dosage.toLowerCase() === medicineADosage.toLowerCase()
+      )
+      
+      if (!existingMedicine) {
+        const newMedicine = {
+          id: medicineId,
+          name: medicineName,
+          dosage: medicineADosage,
+          lastUsed: new Date().toISOString()
+        }
+        
+        setSavedMedicines(prev => [newMedicine, ...prev])
+        
+        // TODO: Save to database
+        // await fetch('/api/saved-medicines', {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify(newMedicine)
+        // })
+      } else {
+        // Update last used date
+        setSavedMedicines(prev => 
+          prev.map(m => 
+            m.id === existingMedicine.id 
+              ? { ...m, lastUsed: new Date().toISOString() }
+              : m
+          )
+        )
+      }
+    } catch (error) {
+      console.error('Failed to save medicine:', error)
+    }
+  }
+
+  const useSavedMedicine = (medicine: {name: string, dosage: string}) => {
+    setMedication(medicine.name)
+    setDosage(medicine.dosage)
+    setShowSavedMedicines(false)
+    
+    // Update last used
+    saveMedicine(medicine.name, medicine.dosage)
   }
 
   const loadSearchResults = async (searchId: string) => {
@@ -217,6 +308,42 @@ export default function Dashboard() {
   }
 
   const handleConfirmStart = () => {
+    // Save the medication to saved medicines
+    if (medication && dosage) {
+      saveMedicine(medication, dosage)
+    }
+    
+    // Log pharmacy call data for processing
+    const selectedPharmacyData = searchResults.filter(p => selectedPharmacies.includes(p.id))
+    console.log('=== PHARMACY CALL REQUEST ===')
+    console.log('User Info:', {
+      name: user?.user_metadata?.full_name || 'Unknown',
+      email: user?.email || 'Unknown',
+      userId: user?.id || 'Unknown'
+    })
+    console.log('Prescription Details:', {
+      medication: medication,
+      dosage: dosage,
+      searchLocation: zipCode,
+      searchRadius: `${radius[0]} miles`
+    })
+    console.log('Payment Option:', {
+      type: selectedPaymentOption,
+      pharmaciesSelected: selectedPharmacies.length,
+      estimatedCost: selectedPaymentOption === 'per-call' 
+        ? `$${selectedPharmacies.length <= 10 ? Math.min(selectedPharmacies.length, 7) : selectedPharmacies.length}`
+        : '$7'
+    })
+    console.log('Selected Pharmacies:', selectedPharmacyData.map(p => ({
+      name: p.name,
+      address: p.address,
+      phone: p.phone,
+      distance: `${p.distance} miles`,
+      pharmacyId: p.id
+    })))
+    console.log('Timestamp:', new Date().toISOString())
+    console.log('===============================')
+    
     setShowConfirmation(false)
     handlePaymentChoice(selectedPaymentOption!)
   }
@@ -313,17 +440,31 @@ export default function Dashboard() {
               <span className="text-2xl font-bold">RefillRadar</span>
             </Link>
             <div className="flex items-center space-x-4">
-              <span className="text-white">
-                Welcome back, {user.user_metadata?.full_name || user.email}!
-              </span>
-              <Button 
-                onClick={handleSignOut}
-                variant="ghost" 
-                className="text-white hover:text-red-300"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
+              <div className="relative z-[10000]" ref={dropdownRef}>
+                <Button 
+                  ref={buttonRef}
+                  onClick={() => {
+                    if (!showUserDropdown && buttonRef.current) {
+                      const rect = buttonRef.current.getBoundingClientRect()
+                      setDropdownPosition({
+                        top: rect.bottom + 8,
+                        right: window.innerWidth - rect.right
+                      })
+                    }
+                    setShowUserDropdown(!showUserDropdown)
+                  }}
+                  variant="ghost" 
+                  className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white px-4 py-2 border border-white/20 hover:border-white/30 transition-all duration-200 flex items-center space-x-2"
+                >
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {user.user_metadata?.full_name || user.email?.split('@')[0] || 'Account'}
+                  </span>
+                  <svg className={`w-4 h-4 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </Button>
+              </div>
             </div>
           </nav>
         </div>
@@ -372,7 +513,15 @@ export default function Dashboard() {
               </div>
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-200">Medication Name</label>
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm font-medium text-gray-200">Medication Name</label>
+                    <button
+                      onClick={() => setShowSavedMedicines(true)}
+                      className="text-xs text-blue-400 hover:text-blue-300 underline transition-colors"
+                    >
+                      📋 Saved ({savedMedicines.length})
+                    </button>
+                  </div>
                   <Input
                     value={medication}
                     onChange={(e) => setMedication(e.target.value)}
@@ -406,25 +555,86 @@ export default function Dashboard() {
                     <label className="text-sm font-medium text-gray-200">
                       Search Radius
                     </label>
-                    <span className="text-sm font-semibold text-blue-400 bg-blue-500/20 px-3 py-1 rounded-full border border-blue-400/30">
-                      {radius[0]} miles
+                    <span className="text-sm font-semibold text-white bg-gradient-to-r from-blue-600/30 to-purple-600/30 px-4 py-2 rounded-full border border-blue-400/50 backdrop-blur-sm shadow-lg">
+                      {radius[0]} {radius[0] === 1 ? 'mile' : 'miles'}
                     </span>
                   </div>
-                  <div className="px-2">
+                  <div className="px-4 py-2">
                     <Slider
                       value={radius}
                       onValueChange={setRadius}
                       max={25}
                       min={1}
                       step={1}
-                      className="w-full slider-enhanced"
+                      className="w-full custom-slider"
                     />
                   </div>
-                  <div className="flex justify-between text-xs text-gray-300 px-2">
-                    <span>1 mile</span>
-                    <span>25 miles</span>
+                  <div className="flex justify-between text-xs text-gray-400 px-4">
+                    <span className="flex items-center gap-1">
+                      <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
+                      1 mile
+                    </span>
+                    <span className="text-center text-gray-500">
+                      {Math.round(((radius[0] - 1) / (25 - 1)) * 100)}% of max range
+                    </span>
+                    <span className="flex items-center gap-1">
+                      25 miles
+                      <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
+                    </span>
                   </div>
                 </div>
+
+                {/* Custom Slider Styles */}
+                <style jsx>{`
+                  .custom-slider [data-orientation="horizontal"] {
+                    height: 20px;
+                    position: relative;
+                  }
+                  
+                  .custom-slider [data-orientation="horizontal"] [data-radix-slider-track] {
+                    background: linear-gradient(90deg, #374151 0%, #4b5563 100%);
+                    height: 4px;
+                    border-radius: 8px;
+                    position: relative;
+                    overflow: hidden;
+                    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+                  }
+                  
+                  .custom-slider [data-orientation="horizontal"] [data-radix-slider-range] {
+                    background: transparent;
+                    height: 100%;
+                    border-radius: 8px;
+                  }
+                  
+                  .custom-slider [data-orientation="horizontal"] [data-radix-slider-thumb] {
+                    display: block;
+                    width: 20px;
+                    height: 20px;
+                    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+                    border: 3px solid white;
+                    border-radius: 50%;
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 0 0 0 rgba(59, 130, 246, 0.6);
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    position: relative;
+                    z-index: 10;
+                  }
+                  
+                  .custom-slider [data-orientation="horizontal"] [data-radix-slider-thumb]:hover {
+                    transform: scale(1.15);
+                    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 0 0 8px rgba(59, 130, 246, 0.1);
+                  }
+                  
+                  .custom-slider [data-orientation="horizontal"] [data-radix-slider-thumb]:active {
+                    transform: scale(1.05);
+                    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.6), 0 0 0 12px rgba(59, 130, 246, 0.15);
+                  }
+                  
+                  .custom-slider [data-orientation="horizontal"] [data-radix-slider-thumb]:focus {
+                    outline: none;
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 0 0 4px rgba(59, 130, 246, 0.3);
+                  }
+                `}</style>
 
                 <Button 
                   onClick={handleSearch}
@@ -528,17 +738,17 @@ export default function Dashboard() {
 
           {/* Map */}
           <div className="lg:col-span-2">
-            <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-600/30 rounded-2xl h-full">
-              <div className="p-8 pb-0">
+            <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-600/30 rounded-2xl h-full min-h-[700px]">
+              <div className="p-6 pb-0">
                 <h3 className="flex items-center space-x-2 text-2xl font-semibold text-white mb-2">
                   <MapPin className="h-6 w-6 text-blue-400" />
                   <span>Pharmacy Locations</span>
                 </h3>
-                <p className="text-gray-300 mb-6">
+                <p className="text-gray-300 mb-4">
                   Pharmacies within {radius[0]} mile radius • Click markers for details
                 </p>
               </div>
-              <div className="p-0">
+              <div className="h-[calc(100%-120px)] min-h-[600px] p-4 pt-0">
                 <Map
                   center={mapCenter}
                   zoom={13}
@@ -956,6 +1166,120 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Saved Medicines Modal */}
+      {showSavedMedicines && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="relative w-full max-w-md">
+            {/* Background decoration */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-cyan-600/20 rounded-3xl blur-xl"></div>
+            
+            {/* Modal content */}
+            <div className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl max-h-[80vh] overflow-hidden">
+              {/* Header */}
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-3 shadow-lg">
+                  <span className="text-2xl">💊</span>
+                </div>
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-1">
+                  Saved Medicines
+                </h3>
+                <p className="text-gray-400 text-sm">
+                  Quick access to your frequently searched medications
+                </p>
+              </div>
+
+              {/* Medicines List */}
+              <div className="max-h-64 overflow-y-auto mb-6">
+                {savedMedicines.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <span className="text-xl">💊</span>
+                    </div>
+                    <p className="text-gray-400 text-sm">No saved medicines yet</p>
+                    <p className="text-gray-500 text-xs mt-1">Complete a search to save medications</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {savedMedicines.map((medicine) => (
+                      <div
+                        key={medicine.id}
+                        onClick={() => useSavedMedicine(medicine)}
+                        className="group bg-gray-800/50 hover:bg-blue-600/20 border border-gray-600/30 hover:border-blue-400/50 rounded-xl p-4 cursor-pointer transition-all duration-200 hover:scale-[1.02]"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-white group-hover:text-blue-300 transition-colors">
+                              {medicine.name}
+                            </h4>
+                            <p className="text-gray-400 text-sm">{medicine.dosage}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500">
+                              Last used
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {new Date(medicine.lastUsed).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Hover indicator */}
+                        <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-blue-400">
+                          Click to use this medication
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Close button */}
+              <Button
+                onClick={() => setShowSavedMedicines(false)}
+                className="w-full bg-gray-800/50 hover:bg-gray-700/50 text-gray-400 hover:text-white border border-gray-600/30 hover:border-gray-500/50 py-3 rounded-xl transition-all duration-200"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Dropdown Portal */}
+      {showUserDropdown && typeof window !== 'undefined' && createPortal(
+        <div 
+          className="fixed w-64 bg-gray-900/95 backdrop-blur-xl border border-gray-600/50 rounded-xl shadow-2xl py-2 z-[99999]"
+          style={{
+            top: dropdownPosition.top,
+            right: dropdownPosition.right
+          }}
+        >
+          <div className="px-4 py-3 border-b border-gray-600/50">
+            <p className="text-white font-semibold text-sm">
+              {user?.user_metadata?.full_name || 'User'}
+            </p>
+            <p className="text-gray-400 text-xs">{user?.email}</p>
+          </div>
+          <Link href="/">
+            <button 
+              onClick={() => setShowUserDropdown(false)}
+              className="w-full text-left px-4 py-3 text-white hover:bg-gray-800/50 transition-colors flex items-center space-x-3"
+            >
+              <Heart className="h-4 w-4 text-cyan-400" />
+              <span>Home</span>
+            </button>
+          </Link>
+          <button 
+            onClick={handleSignOut}
+            className="w-full text-left px-4 py-3 text-white hover:bg-gray-800/50 transition-colors flex items-center space-x-3"
+          >
+            <LogOut className="h-4 w-4 text-red-400" />
+            <span>Sign Out</span>
+          </button>
+        </div>,
+        document.body
       )}
     </div>
   )
