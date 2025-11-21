@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import dynamic from 'next/dynamic'
-import { Heart, MapPin, Search, DollarSign, Clock, CheckCircle, AlertCircle, LogOut, CreditCard, History, RefreshCw, User } from "lucide-react"
+import { Heart, MapPin, Search, DollarSign, Clock, CheckCircle, AlertCircle, LogOut, CreditCard, History, RefreshCw, User, X } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 // Dynamically import the Map component to avoid SSR issues
@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [showSavedMedicines, setShowSavedMedicines] = useState(false)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 })
+  const [showPaymentCancelledNotice, setShowPaymentCancelledNotice] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -64,6 +65,26 @@ export default function Dashboard() {
   useEffect(() => {
     console.log('Radius changed to:', radius[0], 'miles')
   }, [radius])
+
+  // Handle payment cancellation from URL params
+  // Note: Payment success is now handled by /payment/success page
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const paymentStatus = urlParams.get('payment')
+
+    if (paymentStatus === 'cancelled') {
+      // Show React state-based notification
+      setShowPaymentCancelledNotice(true)
+      
+      // Auto-hide notification after 5 seconds
+      setTimeout(() => {
+        setShowPaymentCancelledNotice(false)
+      }, 5000)
+      
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -299,12 +320,58 @@ export default function Dashboard() {
     setShowPayment(true)
   }
 
-  const handlePaymentSubmit = () => {
+  const handlePaymentSubmit = async () => {
     if (!selectedPaymentOption) {
       alert('Please select a payment option')
       return
     }
-    setShowConfirmation(true)
+    
+    setIsSearching(true)
+    
+    try {
+      const amount = selectedPaymentOption === 'per-call' 
+        ? (selectedPharmacies.length <= 10 ? Math.min(selectedPharmacies.length, 7) : selectedPharmacies.length)
+        : 7
+
+      // Create Stripe Checkout session
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount,
+          pharmacyCount: selectedPharmacies.length,
+          paymentType: selectedPaymentOption,
+          userId: user?.id,
+          searchData: {
+            medication,
+            dosage,
+            zipcode: zipCode,
+            radius: radius[0]
+          }
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create payment session')
+      }
+
+      const { sessionId, url } = await response.json()
+
+      if (!url) {
+        throw new Error('No checkout URL returned from payment service')
+      }
+
+      // Redirect to Stripe Checkout URL
+      window.location.href = url
+
+    } catch (error) {
+      console.error('Payment error:', error)
+      alert('Payment failed. Please try again.')
+      setIsSearching(false)
+    }
   }
 
   const handleConfirmStart = () => {
@@ -431,6 +498,21 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-900">
+      {/* Payment Cancelled Notification */}
+      {showPaymentCancelledNotice && (
+        <div className="fixed top-4 right-4 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2">
+          <AlertCircle className="h-5 w-5" />
+          <span>Payment was cancelled. You can try again anytime.</span>
+          <Button 
+            onClick={() => setShowPaymentCancelledNotice(false)}
+            className="ml-2 p-1 h-auto bg-transparent hover:bg-yellow-600 text-white"
+            size="sm"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-black/20 backdrop-blur-lg border-b border-white/10">
         <div className="container mx-auto px-4 py-4">
@@ -1039,7 +1121,7 @@ export default function Dashboard() {
                           Pay ${selectedPaymentOption === 'per-call' 
                             ? (selectedPharmacies.length <= 10 ? Math.min(selectedPharmacies.length, 7) : selectedPharmacies.length)
                             : 7
-                          } & Start Calling
+                          } - Continue to Checkout
                         </>
                       )}
                     </>

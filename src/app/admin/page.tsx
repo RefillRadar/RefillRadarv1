@@ -1,0 +1,538 @@
+"use client"
+
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
+import { 
+  Users, 
+  Search, 
+  Phone, 
+  CheckCircle, 
+  Clock, 
+  AlertCircle, 
+  BarChart3,
+  Settings,
+  LogOut,
+  Filter,
+  Download,
+  Eye,
+  Play,
+  Check,
+  X,
+  MapPin,
+  Pill,
+  DollarSign
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+
+interface SearchTicket {
+  id: string
+  user_id: string
+  medication_name: string
+  dosage: string
+  zipcode: string
+  radius: number
+  status: 'payment_completed' | 'calling_in_progress' | 'completed' | 'failed'
+  created_at: string
+  user_email: string
+  user_name: string
+  payment_amount?: number
+  pharmacy_count?: number
+  called_count?: number
+  results_found?: number
+}
+
+interface PharmacyResult {
+  id: string
+  name: string
+  address: string
+  phone: string
+  status: 'pending' | 'calling' | 'completed' | 'failed'
+  availability?: boolean
+  price?: number
+  notes?: string
+  last_called?: string
+}
+
+export default function AdminDashboard() {
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<'overview' | 'tickets' | 'calls' | 'analytics'>('overview')
+  const [searchTickets, setSearchTickets] = useState<SearchTicket[]>([])
+  const [selectedTicket, setSelectedTicket] = useState<SearchTicket | null>(null)
+  const [pharmacyResults, setPharmacyResults] = useState<PharmacyResult[]>([])
+  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [loading, setLoading] = useState(true)
+
+  // Check admin access
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+      return
+    }
+    
+    if (!authLoading && user) {
+      // Check if user has admin access
+      const isAdmin = user.email?.endsWith('@refillradar.com') || 
+                      user.user_metadata?.role === 'admin' ||
+                      process.env.NODE_ENV !== 'production'
+      
+      if (!isAdmin) {
+        router.push('/dashboard')
+        return
+      }
+      
+      loadSearchTickets()
+    }
+  }, [user, authLoading, router])
+
+  // Don't render admin interface until auth is confirmed
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    )
+  }
+
+  const loadSearchTickets = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/admin/search-tickets')
+      if (response.ok) {
+        const data = await response.json()
+        setSearchTickets(data.tickets || [])
+      }
+    } catch (error) {
+      console.error('Failed to load search tickets:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadPharmacyResults = async (ticketId: string) => {
+    try {
+      const response = await fetch(`/api/admin/pharmacy-results/${ticketId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setPharmacyResults(data.results || [])
+      }
+    } catch (error) {
+      console.error('Failed to load pharmacy results:', error)
+    }
+  }
+
+  const startCalling = async (ticketId: string) => {
+    try {
+      const response = await fetch('/api/admin/start-calling', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticketId })
+      })
+      
+      if (response.ok) {
+        loadSearchTickets()
+        if (selectedTicket?.id === ticketId) {
+          loadPharmacyResults(ticketId)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to start calling:', error)
+    }
+  }
+
+  const markSearchComplete = async (ticketId: string) => {
+    try {
+      const response = await fetch('/api/admin/complete-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticketId })
+      })
+      
+      if (response.ok) {
+        loadSearchTickets()
+        setSelectedTicket(null)
+      }
+    } catch (error) {
+      console.error('Failed to complete search:', error)
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'payment_completed': return 'bg-blue-500/20 text-blue-300'
+      case 'calling_in_progress': return 'bg-orange-500/20 text-orange-300'
+      case 'completed': return 'bg-green-500/20 text-green-300'
+      case 'failed': return 'bg-red-500/20 text-red-300'
+      default: return 'bg-gray-500/20 text-gray-300'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'payment_completed': return <Clock className="h-4 w-4" />
+      case 'calling_in_progress': return <Phone className="h-4 w-4" />
+      case 'completed': return <CheckCircle className="h-4 w-4" />
+      case 'failed': return <AlertCircle className="h-4 w-4" />
+      default: return <Clock className="h-4 w-4" />
+    }
+  }
+
+  const filteredTickets = searchTickets.filter(ticket => 
+    filterStatus === 'all' || ticket.status === filterStatus
+  )
+
+  const stats = {
+    total: searchTickets.length,
+    pending: searchTickets.filter(t => t.status === 'payment_completed').length,
+    inProgress: searchTickets.filter(t => t.status === 'calling_in_progress').length,
+    completed: searchTickets.filter(t => t.status === 'completed').length,
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-950 flex">
+      {/* Sidebar */}
+      <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
+        {/* Logo */}
+        <div className="p-6 border-b border-gray-800">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <Search className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <h1 className="text-white font-bold text-lg">RefillRadar</h1>
+              <p className="text-gray-400 text-xs">Admin Dashboard</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-2">
+          {[
+            { id: 'overview', label: 'Overview', icon: BarChart3 },
+            { id: 'tickets', label: 'Search Tickets', icon: Search },
+            { id: 'calls', label: 'Calling Queue', icon: Phone },
+            { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+          ].map(item => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as any)}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                activeTab === item.id
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              <item.icon className="h-4 w-4" />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-800">
+          <button className="w-full flex items-center space-x-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
+            <LogOut className="h-4 w-4" />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-gray-900 border-b border-gray-800 px-6 py-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-white capitalize">{activeTab}</h2>
+              <p className="text-gray-400 text-sm">Manage pharmacy search requests and calling operations</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Button variant="outline" className="border-gray-600 text-gray-300">
+                <Download className="h-4 w-4 mr-2" />
+                Export Data
+              </Button>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <main className="flex-1 p-6 overflow-auto">
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <Card className="bg-gray-900 border-gray-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-gray-400">Total Searches</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-white">{stats.total}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gray-900 border-gray-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-gray-400">Pending</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-400">{stats.pending}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gray-900 border-gray-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-gray-400">In Progress</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-orange-400">{stats.inProgress}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gray-900 border-gray-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-gray-400">Completed</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-400">{stats.completed}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Recent Activity */}
+              <Card className="bg-gray-900 border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-white">Recent Search Requests</CardTitle>
+                  <CardDescription className="text-gray-400">Latest pharmacy search tickets</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {searchTickets.slice(0, 5).map(ticket => (
+                      <div key={ticket.id} className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div className={`p-2 rounded-lg ${getStatusColor(ticket.status)}`}>
+                            {getStatusIcon(ticket.status)}
+                          </div>
+                          <div>
+                            <div className="text-white font-medium">{ticket.medication_name} {ticket.dosage}</div>
+                            <div className="text-gray-400 text-sm">{ticket.user_name || ticket.user_email}</div>
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className={getStatusColor(ticket.status)}>
+                          {ticket.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === 'tickets' && (
+            <div className="flex h-full space-x-6">
+              {/* Tickets List */}
+              <div className="w-1/2 space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-4">
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="bg-gray-800 border border-gray-600 text-white rounded-lg px-3 py-2"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="payment_completed">Pending</option>
+                      <option value="calling_in_progress">In Progress</option>
+                      <option value="completed">Completed</option>
+                      <option value="failed">Failed</option>
+                    </select>
+                  </div>
+                  <div className="text-gray-400 text-sm">{filteredTickets.length} tickets</div>
+                </div>
+
+                <div className="space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto">
+                  {filteredTickets.map(ticket => (
+                    <Card 
+                      key={ticket.id} 
+                      className={`bg-gray-900 border-gray-700 cursor-pointer transition-all hover:bg-gray-800 ${
+                        selectedTicket?.id === ticket.id ? 'ring-2 ring-blue-500' : ''
+                      }`}
+                      onClick={() => {
+                        setSelectedTicket(ticket)
+                        loadPharmacyResults(ticket.id)
+                      }}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <div className="text-white font-medium">{ticket.medication_name}</div>
+                            <div className="text-gray-400 text-sm">{ticket.dosage}</div>
+                          </div>
+                          <Badge className={getStatusColor(ticket.status)}>
+                            {ticket.status.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="text-gray-400">User:</div>
+                          <div className="text-gray-300">{ticket.user_name || ticket.user_email}</div>
+                          <div className="text-gray-400">Location:</div>
+                          <div className="text-gray-300">{ticket.zipcode}</div>
+                          <div className="text-gray-400">Radius:</div>
+                          <div className="text-gray-300">{ticket.radius} miles</div>
+                          <div className="text-gray-400">Created:</div>
+                          <div className="text-gray-300">{new Date(ticket.created_at).toLocaleDateString()}</div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ticket Details */}
+              <div className="w-1/2">
+                {selectedTicket ? (
+                  <Card className="bg-gray-900 border-gray-700 h-full">
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-white flex items-center space-x-2">
+                            <Pill className="h-5 w-5 text-blue-400" />
+                            <span>{selectedTicket.medication_name} {selectedTicket.dosage}</span>
+                          </CardTitle>
+                          <CardDescription className="text-gray-400 mt-1">
+                            Search ID: {selectedTicket.id}
+                          </CardDescription>
+                        </div>
+                        <Badge className={getStatusColor(selectedTicket.status)}>
+                          {selectedTicket.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-6">
+                      {/* User Info */}
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h3 className="text-white font-medium mb-3 flex items-center space-x-2">
+                          <Users className="h-4 w-4" />
+                          <span>Customer Information</span>
+                        </h3>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="text-gray-400">Name:</div>
+                          <div className="text-gray-300">{selectedTicket.user_name || 'N/A'}</div>
+                          <div className="text-gray-400">Email:</div>
+                          <div className="text-gray-300">{selectedTicket.user_email}</div>
+                          <div className="text-gray-400">Payment:</div>
+                          <div className="text-green-400">${selectedTicket.payment_amount || 0}</div>
+                        </div>
+                      </div>
+
+                      {/* Search Details */}
+                      <div className="bg-gray-800 rounded-lg p-4">
+                        <h3 className="text-white font-medium mb-3 flex items-center space-x-2">
+                          <MapPin className="h-4 w-4" />
+                          <span>Search Parameters</span>
+                        </h3>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="text-gray-400">Location:</div>
+                          <div className="text-gray-300">{selectedTicket.zipcode}</div>
+                          <div className="text-gray-400">Radius:</div>
+                          <div className="text-gray-300">{selectedTicket.radius} miles</div>
+                          <div className="text-gray-400">Target Pharmacies:</div>
+                          <div className="text-gray-300">{selectedTicket.pharmacy_count || 0}</div>
+                          <div className="text-gray-400">Created:</div>
+                          <div className="text-gray-300">{new Date(selectedTicket.created_at).toLocaleString()}</div>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="space-y-3">
+                        {selectedTicket.status === 'payment_completed' && (
+                          <Button 
+                            onClick={() => startCalling(selectedTicket.id)}
+                            className="w-full bg-orange-600 hover:bg-orange-700"
+                          >
+                            <Play className="h-4 w-4 mr-2" />
+                            Start Calling Pharmacies
+                          </Button>
+                        )}
+                        
+                        {selectedTicket.status === 'calling_in_progress' && (
+                          <Button 
+                            onClick={() => markSearchComplete(selectedTicket.id)}
+                            className="w-full bg-green-600 hover:bg-green-700"
+                          >
+                            <Check className="h-4 w-4 mr-2" />
+                            Mark as Complete
+                          </Button>
+                        )}
+
+                        <Button variant="outline" className="w-full border-gray-600 text-gray-300">
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Pharmacy Results ({pharmacyResults.length})
+                        </Button>
+                      </div>
+
+                      {/* Pharmacy Results Preview */}
+                      {pharmacyResults.length > 0 && (
+                        <div className="bg-gray-800 rounded-lg p-4">
+                          <h3 className="text-white font-medium mb-3">Recent Call Results</h3>
+                          <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {pharmacyResults.slice(0, 5).map(result => (
+                              <div key={result.id} className="flex justify-between items-center p-2 bg-gray-700 rounded text-sm">
+                                <div>
+                                  <div className="text-white">{result.name}</div>
+                                  <div className="text-gray-400 text-xs">{result.address}</div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  {result.availability !== undefined && (
+                                    <Badge className={result.availability ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}>
+                                      {result.availability ? 'In Stock' : 'Out of Stock'}
+                                    </Badge>
+                                  )}
+                                  {result.price && (
+                                    <span className="text-green-400">${result.price}</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="h-full flex items-center justify-center bg-gray-900 border border-gray-700 rounded-lg">
+                    <div className="text-center">
+                      <Search className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                      <div className="text-gray-400">Select a search ticket to view details</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'calls' && (
+            <div className="text-center py-20">
+              <Phone className="h-16 w-16 text-gray-600 mx-auto mb-4" />
+              <div className="text-gray-400 text-xl">Calling Queue</div>
+              <div className="text-gray-500 mt-2">Coming soon - Real-time call monitoring</div>
+            </div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <div className="text-center py-20">
+              <BarChart3 className="h-16 w-16 text-gray-600 mx-auto mb-4" />
+              <div className="text-gray-400 text-xl">Analytics Dashboard</div>
+              <div className="text-gray-500 mt-2">Coming soon - Performance metrics and insights</div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  )
+}
