@@ -50,19 +50,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (existingSearch) {
-      return NextResponse.json({
-        success: true,
-        message: 'Search already exists',
-        search_id: existingSearch.id
-      })
-    }
-
-    // This endpoint is now read-only - it only verifies and returns existing search records
-    // The canonical webhook at /api/webhooks/stripe handles all record creation
-    
-    console.log('Looking up existing search record for session:', session.id)
-    
-    if (existingSearch) {
+      console.log('Search record found for session:', session.id)
       return NextResponse.json({
         success: true,
         search_id: existingSearch.id,
@@ -70,6 +58,9 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // This endpoint is now read-only - it only verifies and returns existing search records
+    // The canonical webhook at /api/webhooks/stripe handles all record creation
+    
     // No existing search found - webhook may not have processed yet
     console.log('No search record found for session:', session.id)
     return NextResponse.json(
