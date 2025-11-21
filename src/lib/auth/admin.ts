@@ -9,12 +9,14 @@ export async function checkAdminAuth() {
     return { isAdmin: false, user: null, error: 'Unauthorized' }
   }
 
-  // TODO: Add proper admin role checking
-  // For now, allowing all authenticated users to access admin
-  // In production, you should check user.user_metadata.role === 'admin'
-  // or query a separate roles table
+  // Admin email whitelist for production
+  const adminEmails = [
+    'nhr245@nyu.edu',
+    // Add more admin emails as needed
+  ]
   
   const isAdmin = user.email?.endsWith('@refillradar.com') || 
+                  adminEmails.includes(user.email || '') ||
                   user.user_metadata?.role === 'admin' ||
                   process.env.NODE_ENV !== 'production'
   

@@ -82,8 +82,10 @@ export default function AdminDashboard() {
     }
     
     if (!authLoading && user) {
-      // Check if user has admin access
+      // Check if user has admin access  
+      const adminEmails = ['nhr245@nyu.edu']
       const isAdmin = user.email?.endsWith('@refillradar.com') || 
+                      adminEmails.includes(user.email || '') ||
                       user.user_metadata?.role === 'admin' ||
                       process.env.NODE_ENV !== 'production'
       
