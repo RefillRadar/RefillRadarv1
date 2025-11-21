@@ -129,12 +129,12 @@ export default function LoginPage() {
         {/* Login/Signup Card */}
         <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white shadow-2xl">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">
-              {isSignUp ? "Create Account" : "Welcome Back"}
+            <CardTitle className="text-3xl text-center font-bold">
+              {isSignUp ? "Hello, have we met before?" : "Welcome Back"}
             </CardTitle>
             <CardDescription className="text-center text-gray-300">
               {isSignUp 
-                ? "Sign up to start finding your medications faster" 
+                ? "Join RefillRadar to start finding your medications faster" 
                 : "Sign in to your RefillRadar account"
               }
             </CardDescription>

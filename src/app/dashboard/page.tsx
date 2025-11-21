@@ -104,9 +104,15 @@ export default function Dashboard() {
   }, [])
 
   const handleSignOut = async () => {
-    await signOut()
-    setShowUserDropdown(false)
-    router.push('/')
+    try {
+      console.log('🚪 Signing out user...')
+      await signOut()
+      console.log('✅ Sign out successful')
+      setShowUserDropdown(false)
+      router.push('/')
+    } catch (error) {
+      console.error('❌ Sign out error:', error)
+    }
   }
 
   const loadPreviousSearches = async () => {
