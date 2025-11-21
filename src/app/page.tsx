@@ -129,7 +129,7 @@ export default function LandingPage() {
           <div className="container mx-auto px-4 pt-12 text-center">
             <div className="inline-flex items-center justify-center">
               <div className="glassmorphism rounded-full px-4 py-2 text-sm text-white border-0">
-                $1 FOR 1 YEAR • LIMITED TIME
+                $1 PER PHARMACY CALLED
               </div>
             </div>
           </div>
