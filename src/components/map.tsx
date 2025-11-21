@@ -39,11 +39,23 @@ export default function Map({ center, zoom, radius, pharmacies }: MapProps) {
       if (!mapInstanceRef.current && mapRef.current) {
         mapInstanceRef.current = L.map(mapRef.current).setView(center, zoom)
 
-        // Use dark theme map tiles
-        L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
-          attribution: '© Stadia Maps, © OpenMapTiles, © OpenStreetMap contributors',
-          maxZoom: 20
-        }).addTo(mapInstanceRef.current)
+        // Use dark theme map tiles with API key
+        const stadiaApiKey = process.env.NEXT_PUBLIC_STADIA_MAPS_API_KEY
+        
+        if (stadiaApiKey) {
+          // Use Stadia Maps with API key
+          L.tileLayer(`https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key=${stadiaApiKey}`, {
+            attribution: '© Stadia Maps, © OpenMapTiles, © OpenStreetMap contributors',
+            maxZoom: 20
+          }).addTo(mapInstanceRef.current)
+        } else {
+          // Fallback to OpenStreetMap tiles if no API key
+          console.warn('NEXT_PUBLIC_STADIA_MAPS_API_KEY not found, using OpenStreetMap fallback')
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+          }).addTo(mapInstanceRef.current)
+        }
       }
 
       const map = mapInstanceRef.current
