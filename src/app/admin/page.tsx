@@ -42,6 +42,12 @@ interface SearchTicket {
   pharmacy_count?: number
   called_count?: number
   results_found?: number
+  selected_pharmacies?: Array<{
+    id: string
+    name: string
+    address: string
+    phone: string
+  }>
 }
 
 interface PharmacyResult {
@@ -65,6 +71,8 @@ export default function AdminDashboard() {
   const [pharmacyResults, setPharmacyResults] = useState<PharmacyResult[]>([])
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [loading, setLoading] = useState(true)
+  const [showPharmacyUpdates, setShowPharmacyUpdates] = useState(false)
+  const [updatingPharmacy, setUpdatingPharmacy] = useState<{id: string, name: string} | null>(null)
 
   // Check admin access
   useEffect(() => {
@@ -157,6 +165,33 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Failed to complete search:', error)
+    }
+  }
+
+  const updatePharmacyResult = async (pharmacyId: string, availability: boolean, price?: number, notes?: string) => {
+    if (!selectedTicket) return
+    
+    try {
+      const response = await fetch('/api/admin/update-pharmacy-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          searchId: selectedTicket.id,
+          pharmacyId,
+          availability: availability.toString(),
+          price,
+          notes
+        })
+      })
+      
+      if (response.ok) {
+        // Refresh the selected ticket data
+        loadSearchTickets()
+        loadPharmacyResults(selectedTicket.id)
+        setUpdatingPharmacy(null)
+      }
+    } catch (error) {
+      console.error('Failed to update pharmacy result:', error)
     }
   }
 
@@ -470,35 +505,113 @@ export default function AdminDashboard() {
                           </Button>
                         )}
 
-                        <Button variant="outline" className="w-full border-gray-600 text-gray-300">
+                        <Button 
+                          variant="outline" 
+                          className="w-full border-gray-600 text-gray-300"
+                          onClick={() => setShowPharmacyUpdates(!showPharmacyUpdates)}
+                        >
                           <Eye className="h-4 w-4 mr-2" />
-                          View Pharmacy Results ({pharmacyResults.length})
+                          {showPharmacyUpdates ? 'Hide' : 'Show'} Selected Pharmacies ({selectedTicket.selected_pharmacies?.length || 0})
                         </Button>
                       </div>
 
-                      {/* Pharmacy Results Preview */}
-                      {pharmacyResults.length > 0 && (
+                      {/* Selected Pharmacies & Manual Updates */}
+                      {showPharmacyUpdates && selectedTicket.selected_pharmacies && selectedTicket.selected_pharmacies.length > 0 && (
                         <div className="bg-gray-800 rounded-lg p-4">
-                          <h3 className="text-white font-medium mb-3">Recent Call Results</h3>
-                          <div className="space-y-2 max-h-48 overflow-y-auto">
-                            {pharmacyResults.slice(0, 5).map(result => (
-                              <div key={result.id} className="flex justify-between items-center p-2 bg-gray-700 rounded text-sm">
-                                <div>
-                                  <div className="text-white">{result.name}</div>
-                                  <div className="text-gray-400 text-xs">{result.address}</div>
+                          <h3 className="text-white font-medium mb-3">Selected Pharmacies - Manual Updates</h3>
+                          <div className="space-y-3 max-h-96 overflow-y-auto">
+                            {selectedTicket.selected_pharmacies.map(pharmacy => (
+                              <div key={pharmacy.id} className="bg-gray-700 rounded-lg p-3">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div>
+                                    <div className="text-white font-medium">{pharmacy.name}</div>
+                                    <div className="text-gray-400 text-xs">{pharmacy.address}</div>
+                                    <div className="text-gray-400 text-xs">{pharmacy.phone}</div>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => setUpdatingPharmacy({id: pharmacy.id, name: pharmacy.name})}
+                                    className="bg-blue-600 hover:bg-blue-700 text-xs"
+                                  >
+                                    Update Status
+                                  </Button>
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                  {result.availability !== undefined && (
-                                    <Badge className={result.availability ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}>
-                                      {result.availability ? 'In Stock' : 'Out of Stock'}
-                                    </Badge>
-                                  )}
-                                  {result.price && (
-                                    <span className="text-green-400">${result.price}</span>
-                                  )}
-                                </div>
+                                
+                                {/* Show current results if any */}
+                                {/* Note: We'll need to check the search metadata for existing results */}
                               </div>
                             ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Pharmacy Update Modal */}
+                      {updatingPharmacy && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                          <div className="bg-gray-800 rounded-lg p-6 w-96">
+                            <h3 className="text-white text-lg font-medium mb-4">
+                              Update: {updatingPharmacy.name}
+                            </h3>
+                            
+                            <div className="space-y-4">
+                              <div>
+                                <label className="text-gray-300 text-sm block mb-2">Availability</label>
+                                <select 
+                                  id="availability"
+                                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2"
+                                  defaultValue=""
+                                >
+                                  <option value="">Select availability...</option>
+                                  <option value="true">In Stock</option>
+                                  <option value="false">Out of Stock</option>
+                                </select>
+                              </div>
+                              
+                              <div>
+                                <label className="text-gray-300 text-sm block mb-2">Price (optional)</label>
+                                <input
+                                  id="price"
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="Enter price"
+                                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2"
+                                />
+                              </div>
+                              
+                              <div>
+                                <label className="text-gray-300 text-sm block mb-2">Notes (optional)</label>
+                                <textarea
+                                  id="notes"
+                                  rows={3}
+                                  placeholder="Additional notes..."
+                                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2"
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="flex space-x-3 mt-6">
+                              <Button
+                                onClick={() => {
+                                  const availability = (document.getElementById('availability') as HTMLSelectElement).value
+                                  const price = parseFloat((document.getElementById('price') as HTMLInputElement).value) || undefined
+                                  const notes = (document.getElementById('notes') as HTMLTextAreaElement).value || undefined
+                                  
+                                  if (availability !== '') {
+                                    updatePharmacyResult(updatingPharmacy.id, availability === 'true', price, notes)
+                                  }
+                                }}
+                                className="flex-1 bg-green-600 hover:bg-green-700"
+                              >
+                                Save Update
+                              </Button>
+                              <Button
+                                onClick={() => setUpdatingPharmacy(null)}
+                                variant="outline"
+                                className="flex-1 border-gray-600 text-gray-300"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       )}

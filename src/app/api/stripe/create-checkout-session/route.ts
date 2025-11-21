@@ -18,7 +18,8 @@ export async function POST(request: NextRequest) {
       pharmacyCount, 
       paymentType, 
       searchData,
-      userId 
+      userId,
+      selectedPharmacies
     } = await request.json()
 
     // Validate required fields
@@ -58,6 +59,7 @@ export async function POST(request: NextRequest) {
         pharmacyCount: pharmacyCount.toString(),
         searchData: searchData ? JSON.stringify(searchData) : '',
         userId: userId || '',
+        selectedPharmacies: selectedPharmacies ? JSON.stringify(selectedPharmacies) : '',
       },
     })
 

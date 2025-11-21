@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getServerStripe } from '@/lib/server-stripe'
 
 export async function POST(request: NextRequest) {
@@ -58,19 +59,63 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // This endpoint is now read-only - it only verifies and returns existing search records
-    // The canonical webhook at /api/webhooks/stripe handles all record creation
+    // FALLBACK: Create search record if webhook hasn't processed yet
+    // This is a temporary workaround until webhooks are properly configured
     
-    // No existing search found - webhook may not have processed yet
-    console.log('No search record found for session:', session.id)
-    return NextResponse.json(
-      { 
+    if (!session.metadata?.searchData || !session.metadata?.userId) {
+      console.log('⚠️ Missing metadata in session:', session.id)
+      return NextResponse.json({
         success: false,
-        message: 'Search record not found. Please wait for webhook processing or contact support.',
-        sessionId: session.id
-      },
-      { status: 202 } // 202 Accepted - processing may still be in progress
-    )
+        message: 'Invalid session metadata'
+      }, { status: 400 })
+    }
+
+    const searchData = JSON.parse(session.metadata.searchData)
+    const userId = session.metadata.userId
+    const selectedPharmacies = session.metadata.selectedPharmacies ? JSON.parse(session.metadata.selectedPharmacies) : []
+
+    // Use service role client to create the search record
+    const supabaseService = createServiceClient()
+    
+    console.log('Creating fallback search record for session:', session.id)
+    
+    const { data: search, error: searchError } = await supabaseService
+      .from('searches')
+      .insert({
+        user_id: userId,
+        medication_name: searchData.medication,
+        dosage: searchData.dosage,
+        zipcode: searchData.zipcode,
+        radius: parseInt(searchData.radius),
+        status: 'payment_completed',
+        stripe_session_id: session.id,
+        metadata: {
+          payment_amount: session.amount_total ? session.amount_total / 100 : 0,
+          pharmacy_count: session.metadata?.pharmacyCount || 0,
+          payment_type: session.metadata?.paymentType || 'unknown',
+          stripe_session_id: session.id,
+          customer_email: session.customer_details?.email,
+          selected_pharmacies: selectedPharmacies
+        }
+      })
+      .select()
+      .single()
+
+    if (searchError) {
+      console.error('❌ Error creating fallback search record:', searchError)
+      return NextResponse.json({
+        success: false,
+        message: 'Failed to create search record',
+        error: searchError.message
+      }, { status: 500 })
+    }
+
+    console.log('✅ Fallback search record created:', search.id)
+    return NextResponse.json({
+      success: true,
+      search_id: search.id,
+      message: 'Search record created successfully (fallback method)'
+    })
 
   } catch (error) {
     console.error('Error processing payment success:', error)

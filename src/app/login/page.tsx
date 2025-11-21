@@ -22,6 +22,24 @@ export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  // Check for confirmation errors and success messages
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const errorParam = urlParams.get('error')
+    const messageParam = urlParams.get('message')
+    
+    if (errorParam === 'confirmation_failed') {
+      setError('Email confirmation failed. Please try again or request a new confirmation email.')
+    } else if (messageParam === 'confirmed') {
+      setError('Email confirmed successfully! You can now log in.')
+    }
+    
+    // Clear URL params
+    if (errorParam || messageParam) {
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [])
+
   // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user) {

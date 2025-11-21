@@ -1,6 +1,88 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = createClient()
+    
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // Get the search and verify ownership
+    const { data: search, error: searchError } = await supabase
+      .from('searches')
+      .select('*')
+      .eq('id', params.id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (searchError || !search) {
+      return NextResponse.json(
+        { error: 'Search not found' },
+        { status: 404 }
+      )
+    }
+
+    // Extract pharmacy results from metadata
+    const pharmacyResults = search.metadata?.pharmacy_results || {}
+    const selectedPharmacies = search.metadata?.selected_pharmacies || []
+    
+    // Combine selected pharmacies with their results
+    const results = selectedPharmacies.map((pharmacy: any) => {
+      const result = pharmacyResults[pharmacy.id] || {}
+      return {
+        id: pharmacy.id,
+        name: pharmacy.name,
+        address: pharmacy.address,
+        phone: pharmacy.phone,
+        availability: result.availability,
+        price: result.price,
+        notes: result.notes,
+        last_updated: result.updated_at,
+        status: result.availability !== undefined ? 'completed' : 'pending'
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      search: {
+        id: search.id,
+        medication_name: search.medication_name,
+        dosage: search.dosage,
+        zipcode: search.zipcode,
+        radius: search.radius,
+        status: search.status,
+        created_at: search.created_at,
+        completed_at: search.completed_at
+      },
+      results,
+      summary: {
+        total_pharmacies: selectedPharmacies.length,
+        completed_calls: results.filter((r: any) => r.status === 'completed').length,
+        in_stock: results.filter((r: any) => r.availability === true).length,
+        out_of_stock: results.filter((r: any) => r.availability === false).length
+      }
+    })
+
+  } catch (error) {
+    console.error('Search results API error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }

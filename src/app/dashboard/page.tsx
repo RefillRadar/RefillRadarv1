@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
 import dynamic from 'next/dynamic'
 import { Heart, MapPin, Search, DollarSign, Clock, CheckCircle, AlertCircle, LogOut, CreditCard, History, RefreshCw, User, X } from "lucide-react"
@@ -40,6 +41,8 @@ export default function Dashboard() {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [previousSearches, setPreviousSearches] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<'search' | 'history'>('search')
+  const [selectedSearchResults, setSelectedSearchResults] = useState<any>(null)
+  const [showSearchResults, setShowSearchResults] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [selectedPharmacies, setSelectedPharmacies] = useState<string[]>([])
   const [showPharmacySelection, setShowPharmacySelection] = useState(false)
@@ -109,13 +112,28 @@ export default function Dashboard() {
   const loadPreviousSearches = async () => {
     try {
       setLoadingHistory(true)
+      console.log('🔍 Loading previous searches for user:', user?.id)
       const response = await fetch('/api/search')
+      console.log('📡 Search API response status:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log('✅ Previous searches loaded:', {
+          count: data.searches?.length || 0,
+          searches: data.searches?.map((s: any) => ({
+            id: s.id,
+            medication: s.medication_name,
+            status: s.status,
+            created: s.created_at
+          }))
+        })
         setPreviousSearches(data.searches || [])
+      } else {
+        const errorText = await response.text()
+        console.error('❌ Failed to load searches:', response.status, errorText)
       }
     } catch (error) {
-      console.error('Failed to load previous searches:', error)
+      console.error('❌ Search loading error:', error)
     } finally {
       setLoadingHistory(false)
     }
@@ -191,21 +209,11 @@ export default function Dashboard() {
 
   const loadSearchResults = async (searchId: string) => {
     try {
-      const response = await fetch(`/api/search/${searchId}`)
+      const response = await fetch(`/api/search/${searchId}/results`)
       if (response.ok) {
         const data = await response.json()
-        setSearchResults(data.results.map((result: any) => ({
-          id: result.pharmacy_id,
-          name: result.pharmacy_name,
-          address: result.address,
-          lat: parseFloat(result.latitude),
-          lng: parseFloat(result.longitude),
-          phone: result.phone,
-          availability: result.availability ? 'In Stock' : 'Out of Stock',
-          price: result.price ? `$${result.price}` : 'N/A',
-          confidence: result.confidence_score,
-          lastChecked: new Date(result.last_called).toLocaleDateString()
-        })))
+        setSelectedSearchResults(data)
+        setShowSearchResults(true)
       }
     } catch (error) {
       console.error('Failed to load search results:', error)
@@ -230,55 +238,75 @@ export default function Dashboard() {
       return
     }
     
-    console.log('Search initiated with radius:', radius[0], 'miles')
+    console.log('🔍 Search initiated with:', { medication, zipCode, radius: radius[0] })
     setIsSearching(true)
     
     try {
       // Get real pharmacy data
       const apiUrl = `/api/pharmacies?zipcode=${zipCode}&radius=${radius[0]}`
-      console.log('API URL:', apiUrl)
+      console.log('📍 Fetching from API URL:', apiUrl)
+      
       const pharmacyResponse = await fetch(apiUrl)
-      if (pharmacyResponse.ok) {
-        const pharmacyData = await pharmacyResponse.json()
-        console.log('API returned', pharmacyData.pharmacies.length, 'pharmacies for radius', radius[0])
-        console.log('Pharmacy distances:', pharmacyData.pharmacies.map((p: any) => p.distance).slice(0, 5))
-        
-        // Update map center
-        if (pharmacyData.center) {
-          setMapCenter([pharmacyData.center.lat, pharmacyData.center.lng])
-        }
-        
-        // Update pharmacies list for map
-        setPharmacies(pharmacyData.pharmacies.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          address: p.address,
-          lat: p.latitude,
-          lng: p.longitude,
-          phone: p.phone
-        })))
-        
-        // Set search results
-        const results = pharmacyData.pharmacies.map((pharmacy: any) => ({
-          id: pharmacy.id,
-          name: pharmacy.name,
-          address: pharmacy.address,
-          lat: pharmacy.latitude,
-          lng: pharmacy.longitude,
-          phone: pharmacy.phone,
-          distance: pharmacy.distance,
-          rating: pharmacy.rating
-        }))
-        
-        setSearchResults(results)
-        setShowPharmacySelection(true)
-        setSelectedPharmacies([]) // Reset selection
-      } else {
-        throw new Error('Failed to fetch pharmacy data')
+      console.log('📡 Pharmacy API response status:', pharmacyResponse.status)
+      
+      if (!pharmacyResponse.ok) {
+        const errorText = await pharmacyResponse.text()
+        console.error('❌ Pharmacy API error:', pharmacyResponse.status, errorText)
+        throw new Error(`Pharmacy API failed: ${pharmacyResponse.status} - ${errorText}`)
       }
+
+      const pharmacyData = await pharmacyResponse.json()
+      console.log('✅ API returned:', {
+        success: pharmacyData.success,
+        pharmacyCount: pharmacyData.pharmacies?.length || 0,
+        center: pharmacyData.center,
+        warning: pharmacyData.warning
+      })
+      
+      if (!pharmacyData.success || !pharmacyData.pharmacies) {
+        throw new Error('Invalid pharmacy data received')
+      }
+
+      console.log('📊 Pharmacy distances:', pharmacyData.pharmacies.map((p: any) => `${p.name}: ${p.distance}mi`).slice(0, 5))
+      
+      // Update map center
+      if (pharmacyData.center) {
+        console.log('🗺️ Updating map center to:', pharmacyData.center)
+        setMapCenter([pharmacyData.center.lat, pharmacyData.center.lng])
+      }
+      
+      // Update pharmacies list for map
+      const mappedPharmacies = pharmacyData.pharmacies.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        address: p.address,
+        lat: p.latitude,
+        lng: p.longitude,
+        phone: p.phone
+      }))
+      console.log('🗺️ Setting', mappedPharmacies.length, 'pharmacies for map')
+      setPharmacies(mappedPharmacies)
+      
+      // Set search results
+      const results = pharmacyData.pharmacies.map((pharmacy: any) => ({
+        id: pharmacy.id,
+        name: pharmacy.name,
+        address: pharmacy.address,
+        lat: pharmacy.latitude,
+        lng: pharmacy.longitude,
+        phone: pharmacy.phone,
+        distance: pharmacy.distance,
+        rating: pharmacy.rating
+      }))
+      
+      console.log('🎯 Setting search results:', results.length, 'pharmacies')
+      setSearchResults(results)
+      setShowPharmacySelection(true)
+      setSelectedPharmacies([]) // Reset selection
+      
     } catch (error) {
-      console.error('Search error:', error)
-      alert('Search failed. Please try again.')
+      console.error('❌ Search error:', error)
+      alert(`Search failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`)
     } finally {
       setIsSearching(false)
     }
@@ -349,7 +377,16 @@ export default function Dashboard() {
             dosage,
             zipcode: zipCode,
             radius: radius[0]
-          }
+          },
+          selectedPharmacies: selectedPharmacies.map(id => {
+            const pharmacy = searchResults.find(p => p.id === id)
+            return {
+              id: pharmacy?.id,
+              name: pharmacy?.name,
+              address: pharmacy?.address,
+              phone: pharmacy?.phone
+            }
+          })
         })
       })
 
@@ -1324,6 +1361,93 @@ export default function Dashboard() {
               >
                 Close
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search Results Modal */}
+      {showSearchResults && selectedSearchResults && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-6 flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-white">Search Results</h2>
+                <p className="text-gray-400">
+                  {selectedSearchResults.search.medication_name} {selectedSearchResults.search.dosage} • {selectedSearchResults.search.zipcode}
+                </p>
+              </div>
+              <Button
+                onClick={() => setShowSearchResults(false)}
+                variant="outline"
+                className="border-gray-600 text-gray-300"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Summary Stats */}
+              <div className="grid grid-cols-4 gap-4">
+                <div className="bg-gray-800 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-white">{selectedSearchResults.summary.total_pharmacies}</div>
+                  <div className="text-sm text-gray-400">Total Called</div>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-green-400">{selectedSearchResults.summary.in_stock}</div>
+                  <div className="text-sm text-gray-400">In Stock</div>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-red-400">{selectedSearchResults.summary.out_of_stock}</div>
+                  <div className="text-sm text-gray-400">Out of Stock</div>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-yellow-400">{selectedSearchResults.summary.completed_calls}</div>
+                  <div className="text-sm text-gray-400">Completed</div>
+                </div>
+              </div>
+
+              {/* Pharmacy Results */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-white">Pharmacy Results</h3>
+                {selectedSearchResults.results.map((result: any) => (
+                  <div key={result.id} className="bg-gray-800 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="text-white font-medium">{result.name}</h4>
+                        <p className="text-gray-400 text-sm">{result.address}</p>
+                        <p className="text-gray-400 text-sm">{result.phone}</p>
+                      </div>
+                      <div className="text-right">
+                        {result.status === 'completed' && result.availability !== undefined ? (
+                          <div className="space-y-2">
+                            <Badge className={result.availability ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}>
+                              {result.availability ? 'In Stock' : 'Out of Stock'}
+                            </Badge>
+                            {result.price && (
+                              <div className="text-green-400 font-medium">${result.price}</div>
+                            )}
+                          </div>
+                        ) : (
+                          <Badge className="bg-yellow-500/20 text-yellow-300">
+                            {result.status === 'completed' ? 'No Data' : 'Pending'}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    {result.notes && (
+                      <div className="mt-2 p-2 bg-gray-700 rounded text-sm text-gray-300">
+                        <strong>Notes:</strong> {result.notes}
+                      </div>
+                    )}
+                    {result.last_updated && (
+                      <div className="mt-2 text-xs text-gray-500">
+                        Last updated: {new Date(result.last_updated).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

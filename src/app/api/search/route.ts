@@ -94,13 +94,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Fetch user's searches with results count
+    // Fetch user's searches (removed search_results join for now since table may not exist)
     const { data: searches, error: searchesError } = await supabase
       .from('searches')
-      .select(`
-        *,
-        search_results(count)
-      `)
+      .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
@@ -113,10 +110,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Transform the data to include results count
+    // Transform the data to include results count from metadata
     const transformedSearches = searches.map(search => ({
       ...search,
-      results_count: search.search_results?.[0]?.count || 0
+      results_count: search.metadata?.selected_pharmacies?.length || 0
     }))
 
     return NextResponse.json({

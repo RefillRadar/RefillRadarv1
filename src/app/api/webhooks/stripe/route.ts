@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getServerStripe, getWebhookSecret } from '@/lib/server-stripe'
 
 export async function POST(request: NextRequest) {
@@ -48,8 +49,10 @@ export async function POST(request: NextRequest) {
 
       const searchData = JSON.parse(session.metadata.searchData)
       const userId = session.metadata.userId
+      const selectedPharmacies = session.metadata.selectedPharmacies ? JSON.parse(session.metadata.selectedPharmacies) : []
 
-      const supabase = createClient()
+      // Use service role client to bypass RLS policies for webhooks
+      const supabase = createServiceClient()
 
       // Check if we already created a search record for this session using stripe_session_id
       const { data: existingSearch } = await supabase
@@ -79,7 +82,8 @@ export async function POST(request: NextRequest) {
             pharmacy_count: session.metadata?.pharmacyCount || 0,
             payment_type: session.metadata?.paymentType || 'unknown',
             stripe_session_id: session.id,
-            customer_email: session.customer_details?.email
+            customer_email: session.customer_details?.email,
+            selected_pharmacies: selectedPharmacies
           }
         })
         .select()

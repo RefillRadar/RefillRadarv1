@@ -187,7 +187,7 @@ function PaymentSuccessContent() {
                 {/* Order Details */}
                 <div className="backdrop-blur-sm bg-black/20 border border-white/10 rounded-2xl p-6 mb-6">
                   <div className="flex justify-between items-center text-sm mb-4">
-                    <span className="text-white/60">ORDER #REFILL{Math.random().toString(36).substr(2, 6).toUpperCase()}</span>
+                    <span className="text-white/60">ORDER #{paymentDetails.sessionId.slice(-8).toUpperCase()}</span>
                     <span className="text-white/60">{new Date().toLocaleDateString()}</span>
                   </div>
                   

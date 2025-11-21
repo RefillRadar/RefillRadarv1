@@ -24,17 +24,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Build query with user info from auth.users table
+    // Build query - skip user join for now to avoid relationship errors
     let query = supabase
       .from('searches')
-      .select(`
-        *,
-        users:user_id (
-          id,
-          email,
-          raw_user_meta_data
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -53,7 +46,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Transform data to include real user info
+    // Transform data - simplified without user join for now
     const tickets = searches.map(search => ({
       id: search.id,
       user_id: search.user_id,
@@ -65,14 +58,12 @@ export async function GET(request: NextRequest) {
       created_at: search.created_at,
       completed_at: search.completed_at,
       stripe_session_id: search.stripe_session_id,
-      user_email: search.users?.email || 'Unknown',
-      user_name: search.users?.raw_user_meta_data?.full_name || 
-                 search.users?.raw_user_meta_data?.name || 
-                 search.users?.email?.split('@')[0] || 
-                 'Unknown User',
+      user_email: `User ${search.user_id?.slice(-4) || 'Unknown'}`, // Show last 4 chars of ID
+      user_name: `User ${search.user_id?.slice(-4) || 'Unknown'}`,
       // Get payment info from metadata JSON
       payment_amount: search.metadata?.payment_amount || search.metadata?.amount || 0,
-      pharmacy_count: search.metadata?.pharmacy_count || search.metadata?.pharmacyCount || 0
+      pharmacy_count: search.metadata?.pharmacy_count || search.metadata?.pharmacyCount || 0,
+      selected_pharmacies: search.metadata?.selected_pharmacies || []
     }))
 
     return NextResponse.json({
