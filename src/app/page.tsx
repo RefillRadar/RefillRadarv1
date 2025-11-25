@@ -3,19 +3,78 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Heart, MapPin, Phone, DollarSign, CheckCircle, Star, Clock, Shield, Bell, LogOut, User } from "lucide-react"
+import { Heart, MapPin, Phone, DollarSign, CheckCircle, Star, Clock, Shield, Bell, LogOut, User, Sun, Moon, Crown } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 
 export default function LandingPage() {
   const [selectedPlan, setSelectedPlan] = useState('premium')
   const [showUserDropdown, setShowUserDropdown] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(true)
   const { user, loading, signOut } = useAuth()
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const handleSignOut = async () => {
     await signOut()
     setShowUserDropdown(false)
+  }
+
+  // Handle subscription checkout for pricing plans
+  const handleSubscriptionCheckout = async (planType: 'base' | 'unlimited') => {
+    if (!user) {
+      // Redirect to login if not authenticated
+      window.location.href = '/login'
+      return
+    }
+
+    try {
+      const productId = planType === 'base' ? 'prod_TUA1LY4GwMnAnj' : 'prod_TSd36pC3NX1adi'
+      
+      const response = await fetch('/api/stripe/create-subscription-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId,
+          planType,
+          userId: user?.id,
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create subscription session')
+      }
+
+      const { url } = await response.json()
+
+      if (!url) {
+        throw new Error('No checkout URL returned from payment service')
+      }
+
+      // Redirect to Stripe Checkout URL
+      window.location.href = url
+
+    } catch (error) {
+      console.error('Subscription checkout error:', error)
+      alert('Checkout failed. Please try again.')
+    }
+  }
+
+  // Load theme preference from localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('landing-theme')
+    if (savedTheme) {
+      setIsDarkMode(savedTheme === 'dark')
+    }
+  }, [])
+
+  // Save theme preference to localStorage
+  const toggleTheme = () => {
+    const newTheme = !isDarkMode
+    setIsDarkMode(newTheme)
+    localStorage.setItem('landing-theme', newTheme ? 'dark' : 'light')
   }
 
   // Close dropdown when clicking outside
@@ -33,10 +92,10 @@ export default function LandingPage() {
   }, [])
   
   return (
-    <div className="min-h-screen">
-      {/* Hero Section with Sky Background */}
+    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+      {/* Hero Section */}
       <section className="relative overflow-hidden">
-        {/* Sky Background */}
+        {/* Sky Background - Same for both modes */}
         <div 
           className="absolute inset-0"
           style={{
@@ -46,7 +105,6 @@ export default function LandingPage() {
             backgroundRepeat: 'no-repeat'
           }}
         />
-        
         {/* Overlay for better readability */}
         <div className="absolute inset-0 bg-black/30" />
         
@@ -60,6 +118,18 @@ export default function LandingPage() {
                 <span className="text-2xl font-bold text-white">RefillRadar</span>
               </div>
               <div className="flex items-center space-x-4">
+                {/* Theme Toggle */}
+                <Button
+                  onClick={toggleTheme}
+                  variant="ghost"
+                  size="sm"
+                  className={`${isDarkMode 
+                    ? 'glassmorphism glassmorphism-hover text-white border-0' 
+                    : 'bg-white/80 hover:bg-white border border-gray-200 text-gray-700'
+                  } px-3 py-2`}
+                >
+                  {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
                 {loading ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -69,7 +139,10 @@ export default function LandingPage() {
                     <Button 
                       onClick={() => setShowUserDropdown(!showUserDropdown)}
                       variant="ghost" 
-                      className="glassmorphism glassmorphism-hover text-white px-4 py-2 border-0 flex items-center space-x-2"
+                      className={`${isDarkMode 
+                        ? 'glassmorphism glassmorphism-hover text-white border-0' 
+                        : 'bg-white/80 hover:bg-white border border-gray-200 text-gray-700'
+                      } px-4 py-2 flex items-center space-x-2`}
                     >
                       <User className="h-4 w-4" />
                       <span className="hidden sm:inline">
@@ -190,13 +263,13 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-20 bg-gray-900">
+      <section className={`py-20 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               How RefillRadar Works
             </h2>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            <p className={`text-xl max-w-3xl mx-auto ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               Our AI-powered system automates the tedious process of calling pharmacies, 
               saving you time and helping you find your medications faster.
             </p>
@@ -288,13 +361,13 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-gray-800">
+      <section className={`py-20 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               What Our Users Say
             </h2>
-            <p className="text-xl text-gray-300">
+            <p className={`text-xl ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               Thousands of patients trust RefillRadar to find their medications faster
             </p>
           </div>
@@ -379,243 +452,362 @@ export default function LandingPage() {
       </section>
 
       {/* Choose Your Plan Section */}
-      <section className="py-20 bg-black">
+      <section className={`py-20 ${isDarkMode ? 'bg-black' : 'bg-gray-50'}`}>
         <div className="container mx-auto px-4">
           <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               Choose Your Plan
             </h2>
-            <p className="text-xl text-gray-300">
+            <p className={`text-xl ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               Simple, transparent pricing that scales with your needs
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto items-start">
-            {/* Premium Plan */}
-            <div className="relative pt-6 h-full">
-              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-20">
-                <span className="bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-semibold">
-                  RECOMMENDED
-                </span>
-              </div>
-              <div 
-                className={`cursor-pointer transition-all duration-300 bg-gray-900/50 backdrop-blur-sm rounded-2xl p-8 text-center relative overflow-hidden h-full flex flex-col ${
-                  selectedPlan === 'premium' 
-                    ? 'border-2 border-blue-500/80 shadow-lg shadow-blue-500/20' 
-                    : 'border border-blue-500/30 hover:border-blue-500/50'
-                }`}
-                onClick={() => setSelectedPlan('premium')}
-              >
-                {/* Subtle gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent rounded-2xl"></div>
-                
-                <div className="relative z-10 flex flex-col h-full">
-                  {/* Plan Icon */}
-                  <div className="bg-blue-500/20 border border-blue-400/30 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
-                    <Shield className="h-8 w-8 text-blue-400" />
-                  </div>
-                  
-                  <h3 className="text-3xl font-bold text-white mb-2">Premium</h3>
-                  <p className="text-gray-300 text-lg mb-6">Complete pharmacy search solution</p>
-                  
-                  <div className="mb-8">
-                    <span className="text-6xl font-bold text-white">$50</span>
-                    <span className="text-gray-300 text-xl">/month</span>
-                  </div>
-
-                  <p className="text-gray-300 mb-8 text-left">
-                    Unlimited pharmacy searches with priority AI calling and advanced features. 
-                    Ideal for families or anyone who needs medications regularly.
-                  </p>
-                  
-                  <div className="space-y-4 text-left mb-8 flex-grow">
-                    <div className="flex items-start space-x-3">
-                      <div className="bg-green-500/20 border border-green-400/30 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <CheckCircle className="h-4 w-4 text-green-400" />
-                      </div>
-                      <div>
-                        <p className="text-white font-semibold">Unlimited pharmacy searches</p>
-                        <p className="text-gray-400 text-sm">Find any medication without limits</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="bg-blue-500/20 border border-blue-400/30 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Shield className="h-4 w-4 text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="text-white font-semibold">Personal medication assistant</p>
-                        <p className="text-gray-400 text-sm">Dedicated support for all your pharmacy needs</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Clock className="h-4 w-4 text-yellow-400" />
-                      </div>
-                      <div>
-                        <p className="text-white font-semibold">Express AI calling</p>
-                        <p className="text-gray-400 text-sm">Faster results with priority queue access</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="bg-blue-500/20 border border-blue-400/30 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Bell className="h-4 w-4 text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="text-white font-semibold">Smart refill alerts & tracking</p>
-                        <p className="text-gray-400 text-sm">Automatic notifications when it&apos;s time to refill</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Link href="/login">
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg rounded-lg">
-                      Choose Premium →
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Pay-Per-Search Plan */}
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-start">
+            {/* Pay As You Go Plan */}
             <div className="relative pt-6 h-full">
               <div 
-                className={`cursor-pointer transition-all duration-300 bg-gray-900/50 backdrop-blur-sm rounded-2xl p-8 text-center relative overflow-hidden h-full flex flex-col ${
+                className={`cursor-pointer transition-all duration-300 backdrop-blur-sm rounded-2xl p-8 text-center relative overflow-hidden h-full flex flex-col ${
+                  isDarkMode 
+                    ? 'bg-gray-900/50' 
+                    : 'bg-white border border-gray-200'
+                } ${
                   selectedPlan === 'payper' 
                     ? 'border-2 border-gray-400/80 shadow-lg shadow-gray-500/20' 
-                    : 'border border-gray-600/30 hover:border-gray-500/50'
+                    : isDarkMode
+                      ? 'border border-gray-600/30 hover:border-gray-500/50'
+                      : 'hover:border-gray-300 hover:shadow-md'
                 }`}
                 onClick={() => setSelectedPlan('payper')}
               >
-                {/* Subtle gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-500/5 to-transparent rounded-2xl"></div>
-                
                 <div className="relative z-10 flex flex-col h-full">
                   {/* Plan Icon */}
-                  <div className="bg-gray-500/20 border border-gray-400/30 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
-                    <DollarSign className="h-8 w-8 text-gray-400" />
+                  <div className={`rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6 ${
+                    isDarkMode 
+                      ? 'bg-gray-500/20 border border-gray-400/30' 
+                      : 'bg-gray-100 border border-gray-200'
+                  }`}>
+                    <DollarSign className={`h-8 w-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
                   </div>
                   
-                  <h3 className="text-3xl font-bold text-white mb-2">Pay-Per-Search</h3>
-                  <p className="text-gray-300 text-lg mb-6">Simple per-pharmacy pricing</p>
+                  <h3 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Pay As You Go</h3>
+                  <p className={`text-sm mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Perfect for occasional searches</p>
                   
-                  <div className="mb-8">
-                    <span className="text-6xl font-bold text-white">$1</span>
-                    <span className="text-gray-300 text-xl">/pharmacy</span>
+                  <div className="mb-6">
+                    <span className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>$1</span>
+                    <span className={`text-lg ml-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>/pharmacy</span>
+                    <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Pay per call basis
+                    </p>
                   </div>
-
-                  <p className="text-gray-300 mb-8 text-left">
-                    Perfect for occasional medication searches. Pay only when you need to find a specific prescription.
-                  </p>
                   
                   <div className="space-y-4 text-left mb-8 flex-grow">
                     <div className="flex items-start space-x-3">
-                      <div className="bg-green-500/20 border border-green-400/30 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <CheckCircle className="h-4 w-4 text-green-400" />
-                      </div>
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-white font-semibold">$1 per pharmacy contacted</p>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>$1 per pharmacy contacted</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Only pay for what you use</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
-                      <div className="bg-green-500/20 border border-green-400/30 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <CheckCircle className="h-4 w-4 text-green-400" />
-                      </div>
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-white font-semibold">Zero monthly fees</p>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>No monthly commitment</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Cancel anytime</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
-                      <div className="bg-green-500/20 border border-green-400/30 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <CheckCircle className="h-4 w-4 text-green-400" />
-                      </div>
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-white font-semibold">Flexible usage-based billing</p>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Real-time availability checks</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>AI calls pharmacies for you</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
-                      <div className="bg-green-500/20 border border-green-400/30 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <CheckCircle className="h-4 w-4 text-green-400" />
-                      </div>
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-white font-semibold">Full network of local pharmacies</p>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Search history & results</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Access your past searches</p>
                       </div>
                     </div>
                   </div>
 
                   <Link href="/login">
-                    <Button className="w-full bg-gray-700 hover:bg-gray-600 text-white border border-gray-600 py-4 text-lg rounded-lg">
+                    <Button className={`w-full py-3 text-lg rounded-lg ${
+                      isDarkMode 
+                        ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-300'
+                    }`}>
                       Start Searching
                     </Button>
                   </Link>
                 </div>
               </div>
             </div>
+
+            {/* Base Plan */}
+            <div className="relative pt-6 h-full">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <span className="bg-green-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                  RECOMMENDED
+                </span>
+              </div>
+              <div 
+                className={`cursor-pointer transition-all duration-300 backdrop-blur-sm rounded-2xl p-8 text-center relative overflow-hidden h-full flex flex-col ${
+                  isDarkMode 
+                    ? 'bg-gray-900/50' 
+                    : 'bg-white border border-gray-200'
+                } ${
+                  selectedPlan === 'base' 
+                    ? 'border-2 border-green-500/80 shadow-lg shadow-green-500/20' 
+                    : isDarkMode
+                      ? 'border border-green-500/30 hover:border-green-500/50'
+                      : 'hover:border-green-300 hover:shadow-md'
+                }`}
+                onClick={() => setSelectedPlan('base')}
+              >
+                <div className="relative z-10 flex flex-col h-full mt-4">
+                  {/* Plan Icon */}
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl mb-4 mx-auto">
+                    <CheckCircle className="h-8 w-8 text-white" />
+                  </div>
+                  
+                  <h3 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Base Plan</h3>
+                  <p className={`text-sm mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Great value for regular users</p>
+                  
+                  <div className="mb-6">
+                    <span className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>$20</span>
+                    <span className={`text-lg ml-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>/month</span>
+                    <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      25 pharmacy calls included
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-4 text-left mb-8 flex-grow">
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>25 pharmacy calls included</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Perfect for regular users</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>$0.80 per call</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>20% savings vs. pay-as-you-go</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Real-time availability checks</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>AI calls pharmacies for you</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Monthly renewal</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Calls reset each month</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={() => handleSubscriptionCheckout('base')}
+                    className="w-full py-3 text-lg rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                  >
+                    Choose Base Plan →
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Unlimited Plan */}
+            <div className="relative pt-6 h-full">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                  BEST VALUE
+                </span>
+              </div>
+              <div 
+                className={`cursor-pointer transition-all duration-300 backdrop-blur-sm rounded-2xl p-8 text-center relative overflow-hidden h-full flex flex-col ${
+                  isDarkMode 
+                    ? 'bg-gray-900/50' 
+                    : 'bg-white border border-gray-200'
+                } ${
+                  selectedPlan === 'unlimited' 
+                    ? 'border-2 border-blue-500/80 shadow-lg shadow-blue-500/20' 
+                    : isDarkMode
+                      ? 'border border-blue-500/30 hover:border-blue-500/50'
+                      : 'hover:border-blue-300 hover:shadow-md'
+                }`}
+                onClick={() => setSelectedPlan('unlimited')}
+              >
+                <div className="relative z-10 flex flex-col h-full mt-4">
+                  {/* Plan Icon */}
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4 mx-auto">
+                    <Crown className="h-8 w-8 text-white" />
+                  </div>
+                  
+                  <h3 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Unlimited</h3>
+                  <p className={`text-sm mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>For frequent medication searches</p>
+                  
+                  <div className="mb-6">
+                    <span className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>$50</span>
+                    <span className={`text-lg ml-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>/month</span>
+                    <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Unlimited pharmacy calls
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-4 text-left mb-8 flex-grow">
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Unlimited pharmacy searches</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>No limits on calls or searches</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Priority AI calling</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Faster results with priority queue</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Advanced search filters</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Filter by price, distance, ratings</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Smart refill alerts</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Automatic notifications when it's time to refill</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Premium support</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Priority customer support</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={() => handleSubscriptionCheckout('unlimited')}
+                    className="w-full py-3 text-lg rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  >
+                    Choose Unlimited →
+                  </Button>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-black py-16">
+      <footer className={`py-16 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-2 mb-6">
                 <Heart className="h-8 w-8 text-cyan-400" />
-                <span className="text-2xl font-bold text-white">RefillRadar</span>
+                <span className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>RefillRadar</span>
               </div>
-              <p className="text-gray-400 mb-6">
+              <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Your personal AI Pharmacy Advisor. Find medications faster, compare prices, 
                 and never waste time calling pharmacies again.
               </p>
               <div className="flex space-x-4">
-                <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm">f</span>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+                }`}>
+                  <span className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-600'}`}>f</span>
                 </div>
-                <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm">t</span>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+                }`}>
+                  <span className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-600'}`}>t</span>
                 </div>
-                <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm">in</span>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+                }`}>
+                  <span className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-600'}`}>in</span>
                 </div>
               </div>
             </div>
 
             <div>
-              <h4 className="text-white font-semibold mb-4">Product</h4>
+              <h4 className={`font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Product</h4>
               <ul className="space-y-3">
-                <li><a href="#" className="text-gray-400 hover:text-white">How it Works</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">Pricing</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">Features</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">API</a></li>
+                <li><a href="#" className={`transition-colors ${
+                  isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}>How it Works</a></li>
+                <li><a href="#" className={`transition-colors ${
+                  isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}>Pricing</a></li>
+                <li><a href="#" className={`transition-colors ${
+                  isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}>Features</a></li>
+                <li><a href="#" className={`transition-colors ${
+                  isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}>API</a></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="text-white font-semibold mb-4">Support</h4>
+              <h4 className={`font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Support</h4>
               <ul className="space-y-3">
-                <li><a href="#" className="text-gray-400 hover:text-white">Help Center</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">Contact Us</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">Status</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">Community</a></li>
+                <li><a href="#" className={`transition-colors ${
+                  isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}>Help Center</a></li>
+                <li><a href="#" className={`transition-colors ${
+                  isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}>Contact Us</a></li>
+                <li><a href="#" className={`transition-colors ${
+                  isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}>Status</a></li>
+                <li><a href="#" className={`transition-colors ${
+                  isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}>Community</a></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="text-white font-semibold mb-4">Legal</h4>
+              <h4 className={`font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Legal</h4>
               <ul className="space-y-3">
-                <li><a href="#" className="text-gray-400 hover:text-white">Privacy Policy</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">Terms of Service</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">HIPAA Compliance</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">Security</a></li>
+                <li><a href="#" className={`transition-colors ${
+                  isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}>Privacy Policy</a></li>
+                <li><a href="#" className={`transition-colors ${
+                  isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}>Terms of Service</a></li>
+                <li><a href="#" className={`transition-colors ${
+                  isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}>HIPAA Compliance</a></li>
+                <li><a href="#" className={`transition-colors ${
+                  isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}>Security</a></li>
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 text-sm">
+          <div className={`border-t mt-12 pt-8 flex flex-col md:flex-row justify-between items-center ${
+            isDarkMode ? 'border-gray-800' : 'border-gray-200'
+          }`}>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               © 2024 RefillRadar. All rights reserved.
             </p>
-            <p className="text-gray-400 text-sm mt-4 md:mt-0">
+            <p className={`text-sm mt-4 md:mt-0 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               Made with ❤️ for patients everywhere
             </p>
           </div>

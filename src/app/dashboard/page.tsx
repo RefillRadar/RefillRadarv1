@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
 import dynamic from 'next/dynamic'
-import { Heart, MapPin, Search, DollarSign, Clock, CheckCircle, AlertCircle, LogOut, CreditCard, History, RefreshCw, User, X } from "lucide-react"
+import { Heart, MapPin, Search, DollarSign, Clock, CheckCircle, AlertCircle, LogOut, CreditCard, History, RefreshCw, User, X, Sun, Moon, Menu, Home, Pill, Building2, ChevronLeft, Crown, ChevronDown, Phone } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 // Dynamically import the Map component to avoid SSR issues
@@ -53,8 +53,72 @@ export default function Dashboard() {
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 })
   const [showPaymentCancelledNotice, setShowPaymentCancelledNotice] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(true) // Default to dark mode
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'saved-medications' | 'saved-pharmacies' | 'previous-searches' | 'pricing'>('dashboard')
+  const [openFaqItems, setOpenFaqItems] = useState<{[key: string]: boolean}>({})
+  const [selectedSearchForResults, setSelectedSearchForResults] = useState<any | null>(null)
+  const [searchResultsData, setSearchResultsData] = useState<{[key: string]: any[]}>({}) // Cache search results
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+
+  // Load theme preference from localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('dashboard-theme')
+    if (savedTheme) {
+      setIsDarkMode(savedTheme === 'dark')
+    }
+  }, [])
+
+  // Save theme preference to localStorage
+  const toggleTheme = () => {
+    const newTheme = !isDarkMode
+    setIsDarkMode(newTheme)
+    localStorage.setItem('dashboard-theme', newTheme ? 'dark' : 'light')
+  }
+
+  // Toggle FAQ items
+  const toggleFaqItem = (id: string) => {
+    setOpenFaqItems(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }))
+  }
+
+  // Show search results for a specific search
+  const displaySearchResults = async (search: any) => {
+    setSelectedSearchForResults(search)
+    
+    // Load results if not cached
+    if (!searchResultsData[search.id]) {
+      await loadInlineSearchResults(search.id)
+    }
+  }
+
+  // Load search results for inline display
+  const loadInlineSearchResults = async (searchId: string) => {
+    try {
+      const response = await fetch(`/api/search/${searchId}/results`)
+      if (response.ok) {
+        const data = await response.json()
+        const results = data.results || []
+        
+        // Add mock data for demonstration
+        const mockResults = results.length > 0 ? results : [
+          { id: '1', pharmacy_name: 'CVS Pharmacy', address: '123 Main St, Anytown, NY 12345', phone: '(555) 123-4567', availability: true, price: 25.99, confidence_score: 95, last_called: new Date().toISOString() },
+          { id: '2', pharmacy_name: 'Walgreens', address: '456 Oak Ave, Anytown, NY 12345', phone: '(555) 234-5678', availability: false, price: null, confidence_score: 88, last_called: new Date().toISOString() },
+          { id: '3', pharmacy_name: 'Rite Aid', address: '789 Pine Rd, Anytown, NY 12345', phone: '(555) 345-6789', availability: true, price: 22.50, confidence_score: 92, last_called: new Date().toISOString() }
+        ]
+        
+        setSearchResultsData(prev => ({
+          ...prev,
+          [searchId]: mockResults
+        }))
+      }
+    } catch (error) {
+      console.error('Failed to load search results:', error)
+    }
+  }
 
   useEffect(() => {
     if (!loading && !user) {
@@ -417,6 +481,43 @@ export default function Dashboard() {
     }
   }
 
+  // Handle subscription checkout for pricing plans
+  const handleSubscriptionCheckout = async (planType: 'base' | 'unlimited') => {
+    try {
+      const productId = planType === 'base' ? 'prod_TUA1LY4GwMnAnj' : 'prod_TSd36pC3NX1adi'
+      
+      const response = await fetch('/api/stripe/create-subscription-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId,
+          planType,
+          userId: user?.id,
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create subscription session')
+      }
+
+      const { url } = await response.json()
+
+      if (!url) {
+        throw new Error('No checkout URL returned from payment service')
+      }
+
+      // Redirect to Stripe Checkout URL
+      window.location.href = url
+
+    } catch (error) {
+      console.error('Subscription checkout error:', error)
+      alert('Checkout failed. Please try again.')
+    }
+  }
+
   const handleConfirmStart = () => {
     // Save the medication to saved medicines
     if (medication && dosage) {
@@ -540,7 +641,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Payment Cancelled Notification */}
       {showPaymentCancelledNotice && (
         <div className="fixed top-4 right-4 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2">
@@ -556,47 +657,126 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Header */}
-      <header className="bg-black/20 backdrop-blur-lg border-b border-white/10">
-        <div className="container mx-auto px-4 py-4">
-          <nav className="flex justify-between items-center">
-            <Link href="/" className="flex items-center space-x-2 text-white">
-              <Heart className="h-8 w-8 text-cyan-400" />
-              <span className="text-2xl font-bold">RefillRadar</span>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <div className="relative z-[10000]" ref={dropdownRef}>
-                <Button 
-                  ref={buttonRef}
-                  onClick={() => {
-                    if (!showUserDropdown && buttonRef.current) {
-                      const rect = buttonRef.current.getBoundingClientRect()
-                      setDropdownPosition({
-                        top: rect.bottom + 8,
-                        right: window.innerWidth - rect.right
-                      })
-                    }
-                    setShowUserDropdown(!showUserDropdown)
-                  }}
-                  variant="ghost" 
-                  className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white px-4 py-2 border border-white/20 hover:border-white/30 transition-all duration-200 flex items-center space-x-2"
-                >
-                  <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">
-                    {user.user_metadata?.full_name || user.email?.split('@')[0] || 'Account'}
-                  </span>
-                  <svg className={`w-4 h-4 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </Button>
-              </div>
+      <div className="min-h-screen">
+        {/* Fixed Sidebar */}
+        <aside className={`fixed top-0 left-0 ${sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 border-r flex flex-col h-screen z-10 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          {/* Top Section */}
+          <div className="p-4">
+            {/* Logo and Toggle */}
+            <div className="flex items-center justify-between mb-6">
+              {!sidebarCollapsed ? (
+                <div className="flex items-center space-x-2">
+                  <Heart className="h-6 w-6 text-cyan-400" />
+                  <span className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>RefillRadar</span>
+                </div>
+              ) : (
+                <div className="flex justify-center">
+                  <Heart className="h-6 w-6 text-cyan-400" />
+                </div>
+              )}
+              <Button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                variant="ghost"
+                size="sm"
+                className={`${isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+              >
+                {sidebarCollapsed ? <Menu className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              </Button>
             </div>
-          </nav>
-        </div>
-      </header>
+            
+            {/* Navigation Menu */}
+            <nav className="space-y-2">
+              {[
+                { id: 'dashboard', label: 'Dashboard', icon: Home },
+                { id: 'saved-medications', label: 'Saved Medications', icon: Pill },
+                { id: 'saved-pharmacies', label: 'Saved Pharmacies', icon: Building2 },
+                { id: 'previous-searches', label: 'Previous Searches', icon: History },
+                { id: 'pricing', label: 'Pricing', icon: Crown }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setCurrentPage(item.id as any)}
+                  className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-start'} px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    currentPage === item.id
+                      ? isDarkMode 
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-blue-100 text-blue-700'
+                      : isDarkMode
+                        ? 'text-gray-300 hover:text-white hover:bg-gray-700'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {!sidebarCollapsed && (
+                    <span className="ml-3">{item.label}</span>
+                  )}
+                </button>
+              ))}
+            </nav>
+          </div>
+          
+          {/* User Profile Section - Fixed at Bottom */}
+          <div className={`mt-auto p-4 border-t ${isDarkMode ? 'border-gray-600/30' : 'border-gray-200'}`}>
+            <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-start'} space-x-3`}>
+              {!sidebarCollapsed && (
+                <>
+                  <div className="flex-1">
+                    <div className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {user?.user_metadata?.full_name || 'User'}
+                    </div>
+                    <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {user?.email}
+                    </div>
+                  </div>
+                  <div className="flex space-x-1">
+                    <Button
+                      onClick={toggleTheme}
+                      variant="ghost"
+                      size="sm"
+                      className={`p-2 ${isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                    >
+                      {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      onClick={handleSignOut}
+                      variant="ghost"
+                      size="sm"
+                      className={`p-2 ${isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </>
+              )}
+              {sidebarCollapsed && (
+                <div className="flex flex-col space-y-2">
+                  <Button
+                    onClick={toggleTheme}
+                    variant="ghost"
+                    size="sm"
+                    className={`p-2 ${isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                  >
+                    {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    onClick={handleSignOut}
+                    variant="ghost"
+                    size="sm"
+                    className={`p-2 ${isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
+        {/* Main Content */}
+        <main className={`${sidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 min-h-screen`}>
+          {currentPage === 'dashboard' && (
+            <div className="container mx-auto px-4 py-8">
+              <div className="grid lg:grid-cols-3 gap-8">
           {/* Search Form & Previous Searches */}
           <div className="lg:col-span-1">
             {/* Tab Navigation */}
@@ -606,7 +786,9 @@ export default function Dashboard() {
                 className={`flex-1 px-4 py-2 text-sm font-medium rounded-l-lg border ${
                   activeTab === 'search'
                     ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+                    : isDarkMode 
+                      ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}
               >
                 <Search className="h-4 w-4 inline mr-2" />
@@ -617,7 +799,9 @@ export default function Dashboard() {
                 className={`flex-1 px-4 py-2 text-sm font-medium rounded-r-lg border-t border-r border-b ${
                   activeTab === 'history'
                     ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+                    : isDarkMode 
+                      ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}
               >
                 <History className="h-4 w-4 inline mr-2" />
@@ -626,58 +810,50 @@ export default function Dashboard() {
             </div>
 
             {activeTab === 'search' && (
-            <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-600/30 rounded-2xl p-8 text-white">
+            <div className={`backdrop-blur-sm border rounded-2xl p-8 ${isDarkMode ? 'bg-gray-900/50 border-gray-600/30 text-white' : 'bg-white/80 border-gray-200 text-gray-900'}`}>
               <div className="mb-6">
-                <h3 className="flex items-center space-x-2 text-2xl font-semibold text-white mb-2">
+                <h3 className={`flex items-center space-x-2 text-2xl font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   <Search className="h-6 w-6 text-blue-400" />
                   <span>Find Your Medication</span>
                 </h3>
-                <p className="text-gray-300">
+                <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
                   Enter your prescription details to find nearby pharmacies
                 </p>
               </div>
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label className="text-sm font-medium text-gray-200">Medication Name</label>
-                    <button
-                      onClick={() => setShowSavedMedicines(true)}
-                      className="text-xs text-blue-400 hover:text-blue-300 underline transition-colors"
-                    >
-                      📋 Saved ({savedMedicines.length})
-                    </button>
-                  </div>
+                  <label className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>Medication Name</label>
                   <Input
                     value={medication}
                     onChange={(e) => setMedication(e.target.value)}
                     placeholder="e.g., Lisinopril"
-                    className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+                    className={isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-200">Dosage</label>
+                  <label className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>Dosage</label>
                   <Input
                     value={dosage}
                     onChange={(e) => setDosage(e.target.value)}
                     placeholder="e.g., 10mg"
-                    className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+                    className={isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-200">Zip Code</label>
+                  <label className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>Zip Code</label>
                   <Input
                     value={zipCode}
                     onChange={(e) => setZipCode(e.target.value)}
                     placeholder="12345"
-                    className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+                    className={isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}
                   />
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <label className="text-sm font-medium text-gray-200">
+                    <label className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
                       Search Radius
                     </label>
                     <span className="text-sm font-semibold text-white bg-gradient-to-r from-blue-600/30 to-purple-600/30 px-4 py-2 rounded-full border border-blue-400/50 backdrop-blur-sm shadow-lg">
@@ -694,17 +870,17 @@ export default function Dashboard() {
                       className="w-full custom-slider"
                     />
                   </div>
-                  <div className="flex justify-between text-xs text-gray-400 px-4">
+                  <div className={`flex justify-between text-xs px-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     <span className="flex items-center gap-1">
-                      <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
+                      <span className={`w-1 h-1 rounded-full ${isDarkMode ? 'bg-gray-500' : 'bg-gray-400'}`}></span>
                       1 mile
                     </span>
-                    <span className="text-center text-gray-500">
+                    <span className={`text-center ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
                       {Math.round(((radius[0] - 1) / (25 - 1)) * 100)}% of max range
                     </span>
                     <span className="flex items-center gap-1">
                       25 miles
-                      <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
+                      <span className={`w-1 h-1 rounded-full ${isDarkMode ? 'bg-gray-500' : 'bg-gray-400'}`}></span>
                     </span>
                   </div>
                 </div>
@@ -717,12 +893,12 @@ export default function Dashboard() {
                   }
                   
                   .custom-slider [data-orientation="horizontal"] [data-radix-slider-track] {
-                    background: linear-gradient(90deg, #374151 0%, #4b5563 100%);
+                    background: ${isDarkMode ? 'linear-gradient(90deg, #9ca3af 0%, #d1d5db 100%)' : 'linear-gradient(90deg, #d1d5db 0%, #9ca3af 100%)'};
                     height: 4px;
                     border-radius: 8px;
                     position: relative;
                     overflow: hidden;
-                    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+                    box-shadow: ${isDarkMode ? 'inset 0 1px 3px rgba(0, 0, 0, 0.2)' : 'inset 0 1px 3px rgba(0, 0, 0, 0.1)'};
                   }
                   
                   .custom-slider [data-orientation="horizontal"] [data-radix-slider-range] {
@@ -736,9 +912,9 @@ export default function Dashboard() {
                     width: 20px;
                     height: 20px;
                     background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-                    border: 3px solid white;
+                    border: 3px solid ${isDarkMode ? 'white' : '#1f2937'};
                     border-radius: 50%;
-                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 0 0 0 rgba(59, 130, 246, 0.6);
+                    box-shadow: ${isDarkMode ? '0 4px 12px rgba(59, 130, 246, 0.4), 0 0 0 0 rgba(59, 130, 246, 0.6)' : '0 4px 12px rgba(59, 130, 246, 0.3), 0 0 0 0 rgba(59, 130, 246, 0.4)'};
                     cursor: pointer;
                     transition: all 0.2s ease;
                     position: relative;
@@ -747,17 +923,17 @@ export default function Dashboard() {
                   
                   .custom-slider [data-orientation="horizontal"] [data-radix-slider-thumb]:hover {
                     transform: scale(1.15);
-                    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 0 0 8px rgba(59, 130, 246, 0.1);
+                    box-shadow: ${isDarkMode ? '0 6px 20px rgba(59, 130, 246, 0.5), 0 0 0 8px rgba(59, 130, 246, 0.1)' : '0 6px 20px rgba(59, 130, 246, 0.4), 0 0 0 8px rgba(59, 130, 246, 0.08)'};
                   }
                   
                   .custom-slider [data-orientation="horizontal"] [data-radix-slider-thumb]:active {
                     transform: scale(1.05);
-                    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.6), 0 0 0 12px rgba(59, 130, 246, 0.15);
+                    box-shadow: ${isDarkMode ? '0 2px 8px rgba(59, 130, 246, 0.6), 0 0 0 12px rgba(59, 130, 246, 0.15)' : '0 2px 8px rgba(59, 130, 246, 0.5), 0 0 0 12px rgba(59, 130, 246, 0.12)'};
                   }
                   
                   .custom-slider [data-orientation="horizontal"] [data-radix-slider-thumb]:focus {
                     outline: none;
-                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 0 0 0 4px rgba(59, 130, 246, 0.3);
+                    box-shadow: ${isDarkMode ? '0 4px 12px rgba(59, 130, 246, 0.4), 0 0 0 4px rgba(59, 130, 246, 0.3)' : '0 4px 12px rgba(59, 130, 246, 0.3), 0 0 0 4px rgba(59, 130, 246, 0.25)'};
                   }
                 `}</style>
 
@@ -787,37 +963,37 @@ export default function Dashboard() {
             )}
 
             {activeTab === 'history' && (
-              <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-600/30 rounded-2xl p-8 text-white">
+              <div className={`backdrop-blur-sm border rounded-2xl p-8 ${isDarkMode ? 'bg-gray-900/50 border-gray-600/30 text-white' : 'bg-white/80 border-gray-200 text-gray-900'}`}>
                 <div className="mb-6">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-2xl font-semibold text-white mb-2">Previous Searches</h3>
+                    <h3 className={`text-2xl font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Previous Searches</h3>
                     <Button
                       onClick={loadPreviousSearches}
                       disabled={loadingHistory}
                       size="sm"
-                      className="bg-gray-700 hover:bg-gray-600"
+                      className={isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}
                     >
                       <RefreshCw className={`h-4 w-4 ${loadingHistory ? 'animate-spin' : ''}`} />
                     </Button>
                   </div>
-                  <p className="text-gray-300">
+                  <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
                     View and reload your previous medication searches
                   </p>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                   {loadingHistory ? (
                     <div className="text-center py-8">
                       <Clock className="animate-spin h-8 w-8 mx-auto mb-2 text-gray-400" />
-                      <p className="text-gray-400">Loading searches...</p>
+                      <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Loading searches...</p>
                     </div>
                   ) : previousSearches.length === 0 ? (
                     <div className="text-center py-8">
                       <Search className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                      <p className="text-gray-400">No previous searches found</p>
+                      <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>No previous searches found</p>
                     </div>
                   ) : (
                     previousSearches.map((search) => (
-                      <div key={search.id} className="p-4 bg-gray-800 rounded-lg border border-gray-600/30">
+                      <div key={search.id} className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-600/30' : 'bg-gray-50 border-gray-200'}`}>
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <h4 className="font-medium">{search.medication_name}</h4>
@@ -863,17 +1039,17 @@ export default function Dashboard() {
 
           {/* Map */}
           <div className="lg:col-span-2">
-            <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-600/30 rounded-2xl h-full min-h-[700px]">
+            <div className={`backdrop-blur-sm border rounded-2xl h-full min-h-[500px] ${isDarkMode ? 'bg-gray-900/50 border-gray-600/30' : 'bg-white/80 border-gray-200'}`}>
               <div className="p-6 pb-0">
-                <h3 className="flex items-center space-x-2 text-2xl font-semibold text-white mb-2">
+                <h3 className={`flex items-center space-x-2 text-2xl font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   <MapPin className="h-6 w-6 text-blue-400" />
                   <span>Pharmacy Locations</span>
                 </h3>
-                <p className="text-gray-300 mb-4">
+                <p className={`mb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                   Pharmacies within {radius[0]} mile radius • Click markers for details
                 </p>
               </div>
-              <div className="h-[calc(100%-120px)] min-h-[600px] p-4 pt-0">
+              <div className="h-[calc(100%-120px)] min-h-[400px] p-4 pt-0">
                 <Map
                   center={mapCenter}
                   zoom={13}
@@ -887,12 +1063,12 @@ export default function Dashboard() {
           {/* Search Results - Below Map */}
           {showPharmacySelection && searchResults.length > 0 && (
             <div className="lg:col-span-3 mt-8">
-              <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-600/30 rounded-2xl p-8 text-white">
+              <div className={`backdrop-blur-sm border rounded-2xl p-8 ${isDarkMode ? 'bg-gray-900/50 border-gray-600/30 text-white' : 'bg-white/80 border-gray-200 text-gray-900'}`}>
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-4">
                     <div>
-                      <h3 className="text-2xl font-semibold text-white mb-2">Found {searchResults.length} Pharmacies</h3>
-                      <p className="text-gray-300">
+                      <h3 className={`text-2xl font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Found {searchResults.length} Pharmacies</h3>
+                      <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
                         Select pharmacies to call for {medication} {dosage} availability
                       </p>
                     </div>
@@ -901,14 +1077,14 @@ export default function Dashboard() {
                         onClick={selectAllPharmacies}
                         variant="outline"
                         size="sm"
-                        className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                        className={isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-100'}
                       >
                         {selectedPharmacies.length === searchResults.length ? 'Deselect All' : 'Select All'}
                       </Button>
                       <Button
                         onClick={handleCallPharmacies}
                         disabled={selectedPharmacies.length === 0}
-                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400"
+                        className={`bg-blue-600 hover:bg-blue-700 ${isDarkMode ? 'disabled:bg-gray-700 disabled:text-gray-400' : 'disabled:bg-gray-300 disabled:text-gray-500'}`}
                       >
                         Call {selectedPharmacies.length} Selected
                         {selectedPharmacies.length > 0 && (
@@ -931,7 +1107,9 @@ export default function Dashboard() {
                       className={`p-4 rounded-lg border cursor-pointer transition-all ${
                         selectedPharmacies.includes(result.id)
                           ? 'bg-blue-600/20 border-blue-500'
-                          : 'bg-gray-800 border-gray-600/30 hover:border-gray-500'
+                          : isDarkMode 
+                            ? 'bg-gray-800 border-gray-600/30 hover:border-gray-500'
+                            : 'bg-gray-50 border-gray-200 hover:border-gray-300'
                       }`}
                       onClick={() => togglePharmacySelection(result.id)}
                     >
@@ -942,14 +1120,14 @@ export default function Dashboard() {
                               type="checkbox"
                               checked={selectedPharmacies.includes(result.id)}
                               onChange={() => togglePharmacySelection(result.id)}
-                              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                              className={`w-4 h-4 text-blue-600 rounded focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
                               onClick={(e) => e.stopPropagation()}
                             />
-                            <h4 className="font-semibold text-lg">{result.name}</h4>
+                            <h4 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{result.name}</h4>
                           </div>
-                          <p className="text-sm text-gray-300 mb-2">{result.address}</p>
+                          <p className={`text-sm mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{result.address}</p>
                           {result.phone && (
-                            <p className="text-sm text-gray-400">{result.phone}</p>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{result.phone}</p>
                           )}
                         </div>
                         <div className="text-right">
@@ -995,30 +1173,544 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-        </div>
+              </div>
+            </div>
+          )}
+
+          {/* Saved Medications Page */}
+          {currentPage === 'saved-medications' && (
+            <div className="container mx-auto px-4 py-8">
+              <div className={`backdrop-blur-sm border rounded-2xl p-8 ${isDarkMode ? 'bg-gray-900/50 border-gray-600/30' : 'bg-white/80 border-gray-200'}`}>
+                <div className="mb-6">
+                  <h2 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Saved Medications</h2>
+                  <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Manage your frequently searched medications</p>
+                </div>
+                
+                {savedMedicines.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Pill className={`h-16 w-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                    <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>No saved medications</h3>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>Save medications from your searches to quickly access them later</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {savedMedicines.map((med) => (
+                      <div key={med.id} className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-600/30' : 'bg-gray-50 border-gray-200'}`}>
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{med.name}</h4>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{med.dosage}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className={isDarkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-600'}
+                            onClick={() => {
+                              setMedication(med.name)
+                              setDosage(med.dosage)
+                              setCurrentPage('dashboard')
+                            }}
+                          >
+                            Use
+                          </Button>
+                        </div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>Last used: {med.lastUsed}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Saved Pharmacies Page */}
+          {currentPage === 'saved-pharmacies' && (
+            <div className="container mx-auto px-4 py-8">
+              <div className={`backdrop-blur-sm border rounded-2xl p-8 ${isDarkMode ? 'bg-gray-900/50 border-gray-600/30' : 'bg-white/80 border-gray-200'}`}>
+                <div className="mb-6">
+                  <h2 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Saved Pharmacies</h2>
+                  <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Your preferred pharmacy locations</p>
+                </div>
+                
+                <div className="text-center py-12">
+                  <Building2 className={`h-16 w-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                  <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>No saved pharmacies</h3>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>Save pharmacies from your search results for quick access</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Previous Searches Page */}
+          {currentPage === 'previous-searches' && (
+            <div className="container mx-auto px-4 py-8">
+              <div className={`backdrop-blur-sm border rounded-2xl p-8 ${isDarkMode ? 'bg-gray-900/50 border-gray-600/30' : 'bg-white/80 border-gray-200'}`}>
+                <div className="mb-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h2 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Previous Searches</h2>
+                      <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>View and manage your search history</p>
+                    </div>
+                    <Button
+                      onClick={loadPreviousSearches}
+                      disabled={loadingHistory}
+                      size="sm"
+                      className={isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${loadingHistory ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                  {loadingHistory ? (
+                    <div className="text-center py-8">
+                      <Clock className="animate-spin h-8 w-8 mx-auto mb-2 text-gray-400" />
+                      <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Loading searches...</p>
+                    </div>
+                  ) : previousSearches.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Search className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                      <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>No previous searches found</p>
+                    </div>
+                  ) : (
+                    previousSearches.map((search) => (
+                      <div key={search.id} className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-600/30' : 'bg-gray-50 border-gray-200'}`}>
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{search.medication_name}</h4>
+                            {search.dosage && <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{search.dosage}</p>}
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            search.status === 'completed' 
+                              ? 'bg-green-500/20 text-green-300' 
+                              : search.status === 'failed'
+                              ? 'bg-red-500/20 text-red-300'
+                              : 'bg-yellow-500/20 text-yellow-300'
+                          }`}>
+                            {search.status}
+                          </span>
+                        </div>
+                        <div className={`flex justify-between items-center text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                          <span>{search.zipcode} • {search.radius} miles</span>
+                          <span>{new Date(search.created_at).toLocaleDateString()}</span>
+                        </div>
+                        {search.status === 'completed' && (
+                          <div className="mt-3 flex gap-2">
+                            <Button
+                              onClick={() => {
+                                setMedication(search.medication_name)
+                                setDosage(search.dosage || '')
+                                setZipCode(search.zipcode)
+                                setRadius([search.radius])
+                                loadSearchResults(search.id)
+                                setCurrentPage('dashboard')
+                              }}
+                              size="sm"
+                              variant="outline"
+                              className={isDarkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-600'}
+                            >
+                              Use Search
+                            </Button>
+                            <Button
+                              onClick={() => displaySearchResults(search)}
+                              size="sm"
+                              className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1"
+                            >
+                              View Results
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+                
+                {/* Search Results Section - Displayed underneath entire Previous Searches module */}
+                {selectedSearchForResults && (
+                  <div className={`mt-8 backdrop-blur-sm border rounded-2xl p-8 ${isDarkMode ? 'bg-gray-900/50 border-gray-600/30' : 'bg-white/80 border-gray-200'}`}>
+                    <div className="flex justify-between items-center mb-6">
+                      <div>
+                        <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          Search Results for {selectedSearchForResults.medication_name} {selectedSearchForResults.dosage}
+                        </h3>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {selectedSearchForResults.zipcode} • {selectedSearchForResults.radius} miles • {new Date(selectedSearchForResults.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => setSelectedSearchForResults(null)}
+                        size="sm"
+                        variant="outline"
+                        className={isDarkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-100'}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    {searchResultsData[selectedSearchForResults.id] ? (
+                      <div className="grid gap-4">
+                        <div className={`text-sm mb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                          Found {searchResultsData[selectedSearchForResults.id].length} pharmacies
+                        </div>
+                        
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                          {searchResultsData[selectedSearchForResults.id].map((result) => (
+                            <div key={result.id} className={`p-4 rounded-lg border ${
+                              isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-gray-50 border-gray-200'
+                            }`}>
+                              <div className="flex justify-between items-start mb-3">
+                                <div className="flex-1">
+                                  <h5 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                    {result.pharmacy_name}
+                                  </h5>
+                                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                    {result.address}
+                                  </p>
+                                  <p className={`text-sm flex items-center mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                    <Phone className="h-3 w-3 mr-1" />
+                                    {result.phone}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex justify-between items-center mb-3">
+                                <span className={`text-sm px-3 py-1 rounded-full ${
+                                  result.availability 
+                                    ? 'bg-green-500/20 text-green-400'
+                                    : 'bg-red-500/20 text-red-400'
+                                }`}>
+                                  {result.availability ? 'In Stock' : 'Out of Stock'}
+                                </span>
+                                {result.availability && result.price && (
+                                  <div className={`text-lg font-bold ${isDarkMode ? 'text-cyan-400' : 'text-blue-600'}`}>
+                                    ${result.price.toFixed(2)}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <div className="flex justify-between items-center text-xs">
+                                <span className={isDarkMode ? 'text-gray-500' : 'text-gray-500'}>
+                                  Confidence: {result.confidence_score}%
+                                </span>
+                                <span className={isDarkMode ? 'text-gray-500' : 'text-gray-500'}>
+                                  {new Date(result.last_called).toLocaleTimeString()}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`text-center py-8 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        <Clock className="h-8 w-8 mx-auto mb-2 animate-spin" />
+                        Loading search results...
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Pricing Page */}
+          {currentPage === 'pricing' && (
+            <div className="container mx-auto px-4 py-8">
+              <div className="mb-8">
+                <h2 className={`text-3xl font-bold text-center mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Choose Your Plan</h2>
+                <p className={`text-center text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  Simple, transparent pricing that scales with your needs
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                {/* Pay As You Go Plan */}
+                <div className={`backdrop-blur-sm border rounded-2xl p-8 relative flex flex-col ${isDarkMode ? 'bg-gray-900/50 border-gray-600/30' : 'bg-white/80 border-gray-200'}`}>
+                  <div className="text-center mb-6">
+                    <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                      <DollarSign className={`h-8 w-8 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`} />
+                    </div>
+                    <h3 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Pay As You Go</h3>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Perfect for occasional searches</p>
+                  </div>
+
+                  <div className="text-center mb-6">
+                    <div className="flex items-baseline justify-center">
+                      <span className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>$1</span>
+                      <span className={`text-lg ml-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>/pharmacy</span>
+                    </div>
+                    <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Pay per call basis
+                    </p>
+                  </div>
+
+                  <div className="space-y-4 flex-grow">
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>$1 per pharmacy contacted</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Only pay for what you use</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>No monthly commitment</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Cancel anytime</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Real-time availability checks</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>AI calls pharmacies for you</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Search history & results</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Access your past searches</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => setCurrentPage('dashboard')}
+                    className={`mt-8 w-full py-3 ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'}`}
+                  >
+                    Start Searching
+                  </Button>
+                </div>
+
+                {/* Base Plan */}
+                <div className={`backdrop-blur-sm border rounded-2xl p-8 relative flex flex-col ${isDarkMode ? 'bg-gray-900/50 border-gray-600/30' : 'bg-white/80 border-gray-200'}`}>
+                  {/* Recommended Badge */}
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-green-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                      RECOMMENDED
+                    </span>
+                  </div>
+
+                  <div className="text-center mb-6 mt-4">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl mb-4">
+                      <CheckCircle className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Base Plan</h3>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Great value for regular users</p>
+                  </div>
+
+                  <div className="text-center mb-6">
+                    <div className="flex items-baseline justify-center">
+                      <span className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>$20</span>
+                      <span className={`text-lg ml-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>/month</span>
+                    </div>
+                    <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      25 pharmacy calls included
+                    </p>
+                  </div>
+
+                  <div className="space-y-4 flex-grow">
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>25 pharmacy calls included</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Perfect for regular users</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>$0.80 per call</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>20% savings vs. pay-as-you-go</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Real-time availability checks</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>AI calls pharmacies for you</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Search history & results</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Access your past searches</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Monthly renewal</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Calls reset each month</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => handleSubscriptionCheckout('base')}
+                    className="mt-8 w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                  >
+                    Choose Base Plan →
+                  </Button>
+                </div>
+
+                {/* Unlimited Plan */}
+                <div className={`backdrop-blur-sm border rounded-2xl p-8 relative flex flex-col ${isDarkMode ? 'bg-gray-900/50 border-gray-600/30' : 'bg-white/80 border-gray-200'}`}>
+                  {/* Best Value Badge */}
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                      BEST VALUE
+                    </span>
+                  </div>
+
+                  <div className="text-center mb-6 mt-4">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4">
+                      <Crown className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Unlimited</h3>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>For frequent medication searches</p>
+                  </div>
+
+                  <div className="text-center mb-6">
+                    <div className="flex items-baseline justify-center">
+                      <span className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>$50</span>
+                      <span className={`text-lg ml-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>/month</span>
+                    </div>
+                    <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Unlimited pharmacy calls
+                    </p>
+                  </div>
+
+                  <div className="space-y-4 flex-grow">
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Unlimited pharmacy searches</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>No limits on calls or searches</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Priority AI calling</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Faster results with priority queue</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Advanced search filters</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Filter by price, distance, ratings</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Smart refill alerts</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Automatic notifications when it's time to refill</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Premium support</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Priority customer support</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => handleSubscriptionCheckout('unlimited')}
+                    className="mt-8 w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  >
+                    Choose Unlimited →
+                  </Button>
+                </div>
+              </div>
+
+              {/* FAQ Accordion */}
+              <div className="mt-16 max-w-3xl mx-auto">
+                <h3 className={`text-2xl font-bold text-center mb-8 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Frequently Asked Questions
+                </h3>
+                <div className="space-y-4">
+                  {[
+                    {
+                      id: 'base-plan',
+                      question: 'How does the Base Plan work?',
+                      answer: 'The Base Plan gives you 25 pharmacy calls for $20/month (only $0.80 per call). This is perfect for regular users who need consistent access to pharmacy searches with 20% savings vs. pay-as-you-go.'
+                    },
+                    {
+                      id: 'unlimited-usage',
+                      question: 'What happens if I need more than 50 calls per month?',
+                      answer: 'The unlimited plan covers all your pharmacy calls with no additional charges. Perfect for families or frequent medication searches.'
+                    },
+                    {
+                      id: 'switching-plans',
+                      question: 'Can I switch between plans?',
+                      answer: 'Yes! You can upgrade to unlimited anytime. If you\'re on unlimited, you can downgrade at the end of your billing cycle.'
+                    },
+                    {
+                      id: 'call-accuracy',
+                      question: 'How accurate are the AI pharmacy calls?',
+                      answer: 'Our AI has a 95% accuracy rate in obtaining correct medication availability and pricing information. All calls are recorded for quality assurance.'
+                    },
+                    {
+                      id: 'payment-security',
+                      question: 'Is my payment information secure?',
+                      answer: 'Yes! We use Stripe for payment processing with 256-bit encryption. We never store your payment details on our servers.'
+                    }
+                  ].map((faq) => (
+                    <div key={faq.id} className={`border rounded-xl overflow-hidden ${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                      <button
+                        onClick={() => toggleFaqItem(faq.id)}
+                        className={`w-full px-6 py-4 text-left flex justify-between items-center transition-colors ${isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-100'}`}
+                      >
+                        <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {faq.question}
+                        </h4>
+                        <ChevronDown 
+                          className={`h-5 w-5 transition-transform ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} ${
+                            openFaqItems[faq.id] ? 'transform rotate-180' : ''
+                          }`}
+                        />
+                      </button>
+                      {openFaqItems[faq.id] && (
+                        <div className="px-6 pb-4">
+                          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} leading-relaxed`}>
+                            {faq.answer}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
       </div>
 
       {/* Beautiful Payment Modal */}
       {showPayment && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className={`fixed inset-0 backdrop-blur-md z-50 flex items-center justify-center p-4 ${isDarkMode ? 'bg-black/60' : 'bg-gray-900/40'}`}>
           <div className="relative w-full max-w-lg">
-            {/* Background decoration */}
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-cyan-600/20 rounded-3xl blur-xl"></div>
-            
             {/* Modal content */}
-            <div className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+            <div className={`relative backdrop-blur-xl border rounded-3xl p-8 shadow-2xl ${isDarkMode ? 'bg-gray-900/95 border-white/10' : 'bg-white/95 border-gray-200'}`}>
               {/* Header */}
               <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
+                <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-500 to-purple-600' : 'bg-gradient-to-br from-blue-500 to-blue-600'}`}>
                   <CreditCard className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-2">
+                <h3 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   Secure Payment
                 </h3>
-                <p className="text-gray-400">
-                  Ready to call <span className="text-blue-400 font-semibold">{selectedPharmacies.length}</span> selected pharmacies
+                <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Ready to call <span className={`font-semibold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{selectedPharmacies.length}</span> selected pharmacies
                 </p>
-                <div className="flex items-center justify-center gap-2 mt-2 text-sm text-gray-500">
+                <div className={`flex items-center justify-center gap-2 mt-2 text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                   <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse"></div>
                   <span>Secure • Instant • No subscription</span>
                 </div>
@@ -1031,8 +1723,12 @@ export default function Dashboard() {
                   onClick={() => setSelectedPaymentOption('per-call')}
                   className={`group relative overflow-hidden border rounded-2xl p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
                     selectedPaymentOption === 'per-call'
-                      ? 'bg-gradient-to-r from-blue-600/30 to-blue-500/30 border-blue-400/80 shadow-xl shadow-blue-500/20'
-                      : 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 hover:from-blue-600/20 hover:to-blue-500/20 border-gray-600/50 hover:border-blue-400/50 hover:shadow-xl hover:shadow-blue-500/10'
+                      ? isDarkMode
+                        ? 'bg-gradient-to-r from-blue-600/30 to-blue-500/30 border-blue-400/80 shadow-xl shadow-blue-500/20'
+                        : 'bg-blue-50 border-blue-300 shadow-lg shadow-blue-200/30'
+                      : isDarkMode
+                        ? 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 hover:from-blue-600/20 hover:to-blue-500/20 border-gray-600/50 hover:border-blue-400/50 hover:shadow-xl hover:shadow-blue-500/10'
+                        : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-lg'
                   }`}
                 >
                   <div className="flex justify-between items-center">
@@ -1041,36 +1737,38 @@ export default function Dashboard() {
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                           selectedPaymentOption === 'per-call'
                             ? 'border-blue-400 bg-blue-400'
-                            : 'border-gray-600 group-hover:border-blue-400'
+                            : isDarkMode
+                              ? 'border-gray-600 group-hover:border-blue-400'
+                              : 'border-gray-300 group-hover:border-blue-400'
                         }`}>
                           {selectedPaymentOption === 'per-call' && (
                             <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
                           )}
                         </div>
-                        <h4 className="text-lg font-semibold text-white">Pay Per Call</h4>
+                        <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Pay Per Call</h4>
                         <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
                           Recommended
                         </span>
                       </div>
-                      <p className="text-gray-400 text-sm mb-3">
+                      <p className={`text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         {selectedPharmacies.length <= 10 
                           ? `$1 per call • Max $7 for up to 10 calls` 
                           : `$1 per call • ${selectedPharmacies.length} calls total`
                         }
                       </p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <span>💳</span>
+                      <div className={`flex items-center gap-2 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                        <CheckCircle className="h-4 w-4 text-green-400" />
                         <span>No commitment • Pay only for calls made</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-3xl font-bold text-white mb-1">
+                      <div className={`text-3xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                         ${selectedPharmacies.length <= 10 
                           ? Math.min(selectedPharmacies.length, 7) 
                           : selectedPharmacies.length
                         }
                       </div>
-                      <div className="text-gray-400 text-sm">Total cost</div>
+                      <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total cost</div>
                     </div>
                   </div>
                   {/* Hover effect gradient */}
@@ -1082,10 +1780,16 @@ export default function Dashboard() {
                   onClick={() => selectedPharmacies.length > 10 ? setSelectedPaymentOption('bulk') : null}
                   className={`group relative overflow-hidden border rounded-2xl p-6 transition-all duration-300 ${
                     selectedPharmacies.length <= 10 
-                      ? 'bg-gray-800/30 border-gray-700/50 cursor-not-allowed opacity-60' 
+                      ? isDarkMode
+                        ? 'bg-gray-800/30 border-gray-700/50 cursor-not-allowed opacity-60'
+                        : 'bg-gray-50 border-gray-200 cursor-not-allowed opacity-60'
                       : selectedPaymentOption === 'bulk'
-                      ? 'bg-gradient-to-r from-purple-600/30 to-purple-500/30 border-purple-400/80 shadow-xl shadow-purple-500/20 cursor-pointer'
-                      : 'bg-gradient-to-r from-purple-800/50 to-purple-700/50 hover:from-purple-600/20 hover:to-purple-500/20 border-gray-600/50 hover:border-purple-400/50 cursor-pointer hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/10'
+                      ? isDarkMode
+                        ? 'bg-gradient-to-r from-purple-600/30 to-purple-500/30 border-purple-400/80 shadow-xl shadow-purple-500/20 cursor-pointer'
+                        : 'bg-purple-50 border-purple-300 shadow-lg shadow-purple-200/30 cursor-pointer'
+                      : isDarkMode
+                        ? 'bg-gradient-to-r from-purple-800/50 to-purple-700/50 hover:from-purple-600/20 hover:to-purple-500/20 border-gray-600/50 hover:border-purple-400/50 cursor-pointer hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/10'
+                        : 'bg-white border-gray-200 hover:border-purple-300 hover:shadow-lg cursor-pointer hover:scale-[1.02]'
                   }`}
                 >
                   <div className="flex justify-between items-center">
@@ -1093,36 +1797,38 @@ export default function Dashboard() {
                       <div className="flex items-center gap-3 mb-2">
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                           selectedPharmacies.length <= 10 
-                            ? 'border-gray-600 bg-gray-800' 
+                            ? isDarkMode ? 'border-gray-600 bg-gray-800' : 'border-gray-300 bg-gray-100'
                             : selectedPaymentOption === 'bulk'
                             ? 'border-purple-400 bg-purple-400'
-                            : 'border-gray-600 group-hover:border-purple-400'
+                            : isDarkMode
+                              ? 'border-gray-600 group-hover:border-purple-400'
+                              : 'border-gray-300 group-hover:border-purple-400'
                         }`}>
                           {selectedPaymentOption === 'bulk' && selectedPharmacies.length > 10 && (
                             <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
                           )}
                         </div>
-                        <h4 className="text-lg font-semibold text-white">Bulk Rate</h4>
+                        <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Bulk Rate</h4>
                         {selectedPharmacies.length > 10 && (
                           <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full border border-purple-500/30">
                             Save ${selectedPharmacies.length - 7}
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-400 text-sm mb-3">
+                      <p className={`text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         {selectedPharmacies.length <= 10 
                           ? 'Available for 10+ pharmacy calls'
                           : `$7 flat rate • Save $${(selectedPharmacies.length - 7).toFixed(0)} vs per-call pricing`
                         }
                       </p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <span>💎</span>
+                      <div className={`flex items-center gap-2 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                        <Crown className="h-4 w-4 text-purple-400" />
                         <span>{selectedPharmacies.length <= 10 ? 'Unlock with 10+ selections' : 'Best value for bulk calling'}</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-3xl font-bold text-white mb-1">$7</div>
-                      <div className="text-gray-400 text-sm">Flat rate</div>
+                      <div className={`text-3xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>$7</div>
+                      <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Flat rate</div>
                     </div>
                   </div>
                   {/* Hover effect gradient */}
@@ -1133,7 +1839,7 @@ export default function Dashboard() {
               </div>
 
               {/* Security badge */}
-              <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mb-6 p-3 bg-gray-800/30 rounded-xl border border-gray-700/30">
+              <div className={`flex items-center justify-center gap-2 text-xs mb-6 p-3 rounded-xl border ${isDarkMode ? 'bg-gray-800/30 border-gray-700/30 text-gray-500' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
                 <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                 <span>🔒 Secured by Stripe • 256-bit encryption • No card details stored</span>
               </div>
@@ -1148,7 +1854,9 @@ export default function Dashboard() {
                       ? selectedPaymentOption === 'per-call'
                         ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-blue-500/25 hover:scale-[1.02]'
                         : 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white shadow-lg hover:shadow-purple-500/25 hover:scale-[1.02]'
-                      : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+                      : isDarkMode
+                        ? 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >
                   {selectedPaymentOption ? (
@@ -1178,7 +1886,7 @@ export default function Dashboard() {
                     setShowPayment(false)
                     setSelectedPaymentOption(null)
                   }}
-                  className="w-full bg-gray-800/50 hover:bg-gray-700/50 text-gray-400 hover:text-white border border-gray-600/30 hover:border-gray-500/50 py-3 rounded-xl transition-all duration-200"
+                  className={`w-full py-3 rounded-xl transition-all duration-200 border ${isDarkMode ? 'bg-gray-800/50 hover:bg-gray-700/50 text-gray-400 hover:text-white border-gray-600/30 hover:border-gray-500/50' : 'bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-gray-700 border-gray-200 hover:border-gray-300'}`}
                 >
                   Cancel
                 </Button>
@@ -1375,18 +2083,18 @@ export default function Dashboard() {
       {/* Search Results Modal */}
       {showSearchResults && selectedSearchResults && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-6 flex justify-between items-center">
+          <div className={`rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+            <div className={`sticky top-0 border-b p-6 flex justify-between items-center ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
               <div>
-                <h2 className="text-2xl font-bold text-white">Search Results</h2>
-                <p className="text-gray-400">
+                <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Search Results</h2>
+                <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
                   {selectedSearchResults.search.medication_name} {selectedSearchResults.search.dosage} • {selectedSearchResults.search.zipcode}
                 </p>
               </div>
               <Button
                 onClick={() => setShowSearchResults(false)}
                 variant="outline"
-                className="border-gray-600 text-gray-300"
+                className={isDarkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-600'}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -1395,34 +2103,34 @@ export default function Dashboard() {
             <div className="p-6 space-y-6">
               {/* Summary Stats */}
               <div className="grid grid-cols-4 gap-4">
-                <div className="bg-gray-800 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-white">{selectedSearchResults.summary.total_pharmacies}</div>
-                  <div className="text-sm text-gray-400">Total Called</div>
+                <div className={`rounded-lg p-4 text-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                  <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedSearchResults.summary.total_pharmacies}</div>
+                  <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Called</div>
                 </div>
-                <div className="bg-gray-800 rounded-lg p-4 text-center">
+                <div className={`rounded-lg p-4 text-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
                   <div className="text-2xl font-bold text-green-400">{selectedSearchResults.summary.in_stock}</div>
-                  <div className="text-sm text-gray-400">In Stock</div>
+                  <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>In Stock</div>
                 </div>
-                <div className="bg-gray-800 rounded-lg p-4 text-center">
+                <div className={`rounded-lg p-4 text-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
                   <div className="text-2xl font-bold text-red-400">{selectedSearchResults.summary.out_of_stock}</div>
-                  <div className="text-sm text-gray-400">Out of Stock</div>
+                  <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Out of Stock</div>
                 </div>
-                <div className="bg-gray-800 rounded-lg p-4 text-center">
+                <div className={`rounded-lg p-4 text-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
                   <div className="text-2xl font-bold text-yellow-400">{selectedSearchResults.summary.completed_calls}</div>
-                  <div className="text-sm text-gray-400">Completed</div>
+                  <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Completed</div>
                 </div>
               </div>
 
               {/* Pharmacy Results */}
               <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-white">Pharmacy Results</h3>
+                <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Pharmacy Results</h3>
                 {selectedSearchResults.results.map((result: any) => (
-                  <div key={result.id} className="bg-gray-800 rounded-lg p-4">
+                  <div key={result.id} className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h4 className="text-white font-medium">{result.name}</h4>
-                        <p className="text-gray-400 text-sm">{result.address}</p>
-                        <p className="text-gray-400 text-sm">{result.phone}</p>
+                        <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{result.name}</h4>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{result.address}</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{result.phone}</p>
                       </div>
                       <div className="text-right">
                         {result.status === 'completed' && result.availability !== undefined ? (
@@ -1442,7 +2150,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     {result.notes && (
-                      <div className="mt-2 p-2 bg-gray-700 rounded text-sm text-gray-300">
+                      <div className={`mt-2 p-2 rounded text-sm ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
                         <strong>Notes:</strong> {result.notes}
                       </div>
                     )}
@@ -1459,40 +2167,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* User Dropdown Portal */}
-      {showUserDropdown && typeof window !== 'undefined' && createPortal(
-        <div 
-          className="fixed w-64 bg-gray-900/95 backdrop-blur-xl border border-gray-600/50 rounded-xl shadow-2xl py-2 z-[99999]"
-          style={{
-            top: dropdownPosition.top,
-            right: dropdownPosition.right
-          }}
-        >
-          <div className="px-4 py-3 border-b border-gray-600/50">
-            <p className="text-white font-semibold text-sm">
-              {user?.user_metadata?.full_name || 'User'}
-            </p>
-            <p className="text-gray-400 text-xs">{user?.email}</p>
-          </div>
-          <Link href="/">
-            <button 
-              onClick={() => setShowUserDropdown(false)}
-              className="w-full text-left px-4 py-3 text-white hover:bg-gray-800/50 transition-colors flex items-center space-x-3"
-            >
-              <Heart className="h-4 w-4 text-cyan-400" />
-              <span>Home</span>
-            </button>
-          </Link>
-          <button 
-            onClick={handleSignOut}
-            className="w-full text-left px-4 py-3 text-white hover:bg-gray-800/50 transition-colors flex items-center space-x-3"
-          >
-            <LogOut className="h-4 w-4 text-red-400" />
-            <span>Sign Out</span>
-          </button>
-        </div>,
-        document.body
-      )}
     </div>
   )
 }
