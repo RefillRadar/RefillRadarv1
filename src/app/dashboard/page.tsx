@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -127,7 +127,7 @@ export default function Dashboard() {
       loadPreviousSearches()
       loadSavedMedicines()
     }
-  }, [user, loading, router])
+  }, [user, loading, router, loadPreviousSearches, loadSavedMedicines])
 
   useEffect(() => {
     console.log('Radius changed to:', radius[0], 'miles')
@@ -179,7 +179,7 @@ export default function Dashboard() {
     }
   }
 
-  const loadPreviousSearches = async () => {
+  const loadPreviousSearches = useCallback(async () => {
     try {
       setLoadingHistory(true)
       console.log('🔍 Loading previous searches for user:', user?.id)
@@ -207,9 +207,9 @@ export default function Dashboard() {
     } finally {
       setLoadingHistory(false)
     }
-  }
+  }, [user?.id])
 
-  const loadSavedMedicines = async () => {
+  const loadSavedMedicines = useCallback(async () => {
     try {
       const response = await fetch('/api/saved-medicines')
       if (response.ok) {
@@ -225,7 +225,7 @@ export default function Dashboard() {
         { id: '3', name: 'Atorvastatin', dosage: '20mg', lastUsed: new Date(Date.now() - 172800000).toISOString() }
       ])
     }
-  }
+  }, [])
 
   const saveMedicine = async (medicineName: string, medicineADosage: string) => {
     try {
@@ -1609,7 +1609,7 @@ export default function Dashboard() {
                       <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Smart refill alerts</p>
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Automatic notifications when it's time to refill</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Automatic notifications when it&apos;s time to refill</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">

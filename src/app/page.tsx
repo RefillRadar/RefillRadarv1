@@ -688,7 +688,7 @@ export default function LandingPage() {
                       <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Smart refill alerts</p>
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Automatic notifications when it's time to refill</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Automatic notifications when it&apos;s time to refill</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
