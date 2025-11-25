@@ -660,7 +660,7 @@ export default function Dashboard() {
 
       <div className="min-h-screen">
         {/* Fixed Sidebar */}
-        <aside className={`fixed top-0 left-0 ${sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 border-r flex flex-col h-screen z-10 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <aside className={`fixed top-0 left-0 ${sidebarCollapsed ? 'w-20' : 'w-64'} transition-all duration-300 border-r flex flex-col h-screen z-10 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           {/* Top Section */}
           <div className="p-4">
             {/* Logo and Toggle */}
@@ -672,7 +672,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="flex justify-center">
-                  <Heart className="h-6 w-6 text-cyan-400" />
+                  <Heart className="h-8 w-8 text-cyan-400" />
                 </div>
               )}
               <Button
@@ -697,7 +697,7 @@ export default function Dashboard() {
                 <button
                   key={item.id}
                   onClick={() => setCurrentPage(item.id as any)}
-                  className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-start'} px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center p-3' : 'justify-start px-3 py-2'} rounded-lg text-sm font-medium transition-colors ${
                     currentPage === item.id
                       ? isDarkMode 
                         ? 'bg-blue-600 text-white'
@@ -707,7 +707,7 @@ export default function Dashboard() {
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
-                  <item.icon className="h-4 w-4" />
+                  <item.icon className={`${sidebarCollapsed ? 'h-6 w-6' : 'h-4 w-4'}`} />
                   {!sidebarCollapsed && (
                     <span className="ml-3">{item.label}</span>
                   )}
@@ -757,7 +757,7 @@ export default function Dashboard() {
                     size="sm"
                     className={`p-2 ${isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
                   >
-                    {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                   </Button>
                   <Button
                     onClick={handleSignOut}
@@ -765,7 +765,7 @@ export default function Dashboard() {
                     size="sm"
                     className={`p-2 ${isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
                   >
-                    <LogOut className="h-4 w-4" />
+                    <LogOut className="h-5 w-5" />
                   </Button>
                 </div>
               )}
@@ -774,7 +774,7 @@ export default function Dashboard() {
         </aside>
 
         {/* Main Content */}
-        <main className={`${sidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 min-h-screen`}>
+        <main className={`${sidebarCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300 min-h-screen`}>
           {currentPage === 'dashboard' && (
             <div className="container mx-auto px-4 py-8">
               <div className="grid lg:grid-cols-3 gap-8">
