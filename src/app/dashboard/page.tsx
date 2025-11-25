@@ -120,14 +120,6 @@ export default function Dashboard() {
     }
   }
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login')
-    } else if (user) {
-      loadPreviousSearches()
-      loadSavedMedicines()
-    }
-  }, [user, loading, router, loadPreviousSearches, loadSavedMedicines])
 
   useEffect(() => {
     console.log('Radius changed to:', radius[0], 'miles')
@@ -226,6 +218,15 @@ export default function Dashboard() {
       ])
     }
   }, [])
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login')
+    } else if (user) {
+      loadPreviousSearches()
+      loadSavedMedicines()
+    }
+  }, [user, loading, router, loadPreviousSearches, loadSavedMedicines])
 
   const saveMedicine = async (medicineName: string, medicineADosage: string) => {
     try {
