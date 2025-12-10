@@ -138,7 +138,7 @@ export default function LoginPage() {
               </h1>
 
               <p className="text-xl text-white/80 mb-8 leading-relaxed">
-                Stop calling pharmacy after pharmacy. Our AI finds your medication availability and pricing in minutes.
+                Stop calling pharmacy after pharmacy. We find your medication availability and pricing in minutes.
               </p>
 
               {/* Stats */}

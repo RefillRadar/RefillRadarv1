@@ -214,7 +214,7 @@ export default function LandingPage() {
                 Find your medications
               </h1>
               <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed font-normal px-2" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>
-                RefillRadar is your personal AI Pharmacy Advisor. 
+                RefillRadar is your personal Pharmacy Advisor. 
                 Track your medications, check availability and optimize 
                 your refill routine—all in one place.
               </p>
@@ -270,7 +270,7 @@ export default function LandingPage() {
               How RefillRadar Works
             </h2>
             <p className={`text-lg sm:text-xl max-w-3xl mx-auto px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              Our AI-powered system automates the tedious process of calling pharmacies, 
+              Our automated system handles the tedious process of checking pharmacy availability, 
               saving you time and helping you find your medications faster.
             </p>
           </div>
@@ -296,7 +296,7 @@ export default function LandingPage() {
                     <h3 className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3">Search & Locate</h3>
                     <p className="text-gray-100 leading-relaxed text-sm sm:text-base">
                       Enter your medication and location. Our system identifies nearby pharmacies 
-                      within your preferred radius and prepares to call them.
+                      within your preferred radius and prepares to check availability.
                     </p>
                   </div>
                 </div>
@@ -320,9 +320,9 @@ export default function LandingPage() {
                     <div className="w-12 h-12 sm:w-16 sm:h-16 glassmorphism rounded-full flex items-center justify-center mb-3 sm:mb-4">
                       <span className="text-xl sm:text-2xl font-bold text-white">2</span>
                     </div>
-                    <h3 className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3">AI Calls Pharmacies</h3>
+                    <h3 className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3">Real-Time Availability Check</h3>
                     <p className="text-gray-100 leading-relaxed text-sm sm:text-base">
-                      Our AI voice agent simultaneously calls each pharmacy to check real-time 
+                      Our system simultaneously contacts each pharmacy to check real-time 
                       availability, pricing, and stock levels for your prescription.
                     </p>
                   </div>
@@ -520,7 +520,7 @@ export default function LandingPage() {
                       <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Real-time availability checks</p>
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>AI calls pharmacies for you</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>We check pharmacies for you</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
@@ -602,7 +602,7 @@ export default function LandingPage() {
                       <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Real-time availability checks</p>
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>AI calls pharmacies for you</p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>We check pharmacies for you</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
@@ -673,7 +673,7 @@ export default function LandingPage() {
                     <div className="flex items-start space-x-3">
                       <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Priority AI calling</p>
+                        <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Priority checking</p>
                         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Faster results with priority queue</p>
                       </div>
                     </div>
@@ -724,7 +724,7 @@ export default function LandingPage() {
                 <span className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>RefillRadar</span>
               </div>
               <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Your personal AI Pharmacy Advisor. Find medications faster, compare prices, 
+                Your personal Pharmacy Advisor. Find medications faster, compare prices, 
                 and never waste time calling pharmacies again.
               </p>
               <div className="flex space-x-4">

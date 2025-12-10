@@ -1,0 +1,141 @@
+[
+  {
+    "name": "medication_availability",
+    "purpose": "Capture whether the requested medication is in stock at the pharmacy",
+    "type": "Object",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "availability": {
+          "type": "boolean",
+          "description": "Whether the medication is currently in stock"
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the medication in USD (if available and shared)"
+        },
+        "quantity_available": {
+          "type": "integer",
+          "description": "Number of units/bottles available (if shared)"
+        },
+        "pickup_time": {
+          "type": "string",
+          "description": "When the medication can be picked up (e.g. 'immediately', 'in 30 minutes', 'tomorrow')"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any additional information provided by pharmacy staff"
+        },
+        "insurance_accepted": {
+          "type": "boolean",
+          "description": "Whether they mentioned accepting insurance"
+        },
+        "requires_prescription": {
+          "type": "boolean",
+          "description": "Whether they mentioned needing a prescription"
+        }
+      },
+      "required": ["availability"]
+    },
+    "description": "Set availability to true if pharmacy confirms they have the medication in stock. Set to false if they explicitly say it's out of stock or unavailable. Include price only if voluntarily provided. Add any relevant details to notes field."
+  },
+  {
+    "name": "call_outcome", 
+    "purpose": "Capture the overall outcome and reason for ending the call",
+    "type": "Object",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["completed", "no_answer", "busy", "wrong_number", "refused", "transferred", "incomplete"],
+          "description": "Overall status of the call attempt"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Specific reason why the call ended this way"
+        },
+        "spoke_to": {
+          "type": "string",
+          "description": "Who answered the call (e.g. 'pharmacist', 'pharmacy tech', 'receptionist', 'automated system')"
+        },
+        "pharmacy_confirmed": {
+          "type": "boolean",
+          "description": "Whether we confirmed we reached the correct pharmacy"
+        },
+        "callback_requested": {
+          "type": "boolean",
+          "description": "Whether the pharmacy asked for a callback"
+        },
+        "callback_time": {
+          "type": "string",
+          "description": "When to call back if callback was requested"
+        }
+      },
+      "required": ["status"]
+    },
+    "description": "Always capture the call outcome. Set status to 'completed' if you got medication information. Use 'no_answer' if nobody picked up, 'busy' if line was busy, 'wrong_number' if reached wrong place, 'refused' if they declined to help, 'transferred' if transferred to someone else, 'incomplete' if call was cut off."
+  },
+  {
+    "name": "pharmacy_info",
+    "purpose": "Capture any additional pharmacy information learned during the call", 
+    "type": "Object",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "pharmacy_name_confirmed": {
+          "type": "string",
+          "description": "The pharmacy name as confirmed during the call"
+        },
+        "hours": {
+          "type": "string", 
+          "description": "Store hours if mentioned"
+        },
+        "location": {
+          "type": "string",
+          "description": "Address or location details if mentioned"
+        },
+        "phone_verified": {
+          "type": "boolean",
+          "description": "Whether we confirmed we called the right number"
+        },
+        "special_instructions": {
+          "type": "string",
+          "description": "Any special instructions for future calls or visits"
+        }
+      }
+    },
+    "description": "Capture any useful pharmacy information learned during the call that could help future interactions."
+  },
+  {
+    "name": "restock_info",
+    "purpose": "Capture information about when medication might be restocked if currently unavailable",
+    "type": "Object", 
+    "schema": {
+      "type": "object",
+      "properties": {
+        "expected_restock_date": {
+          "type": "string",
+          "description": "When they expect the medication back in stock"
+        },
+        "can_order": {
+          "type": "boolean",
+          "description": "Whether they can special order the medication"
+        },
+        "order_time": {
+          "type": "string",
+          "description": "How long a special order would take"
+        },
+        "alternative_suggested": {
+          "type": "boolean",
+          "description": "Whether they suggested an alternative medication"
+        },
+        "alternative_name": {
+          "type": "string",
+          "description": "Name of alternative medication suggested"
+        }
+      }
+    },
+    "description": "Only use this if the medication is currently out of stock but pharmacy provided information about restocking or alternatives."
+  }
+]
