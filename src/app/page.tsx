@@ -111,13 +111,13 @@ export default function LandingPage() {
         {/* Content */}
         <div className="relative z-10">
           {/* Header */}
-          <header className="container mx-auto px-4 py-6">
+          <header className="container mx-auto px-4 py-4 sm:py-6">
             <nav className="flex justify-between items-center">
               <div className="flex items-center space-x-2">
-                <Heart className="h-8 w-8 text-white" />
-                <span className="text-2xl font-bold text-white">RefillRadar</span>
+                <Heart className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                <span className="text-xl sm:text-2xl font-bold text-white">RefillRadar</span>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 sm:space-x-4">
                 {/* Theme Toggle */}
                 <Button
                   onClick={toggleTheme}
@@ -126,7 +126,7 @@ export default function LandingPage() {
                   className={`${isDarkMode 
                     ? 'glassmorphism glassmorphism-hover text-white border-0' 
                     : 'bg-white/80 hover:bg-white border border-gray-200 text-gray-700'
-                  } px-3 py-2`}
+                  } px-2 py-2 sm:px-3`}
                 >
                   {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </Button>
@@ -142,7 +142,7 @@ export default function LandingPage() {
                       className={`${isDarkMode 
                         ? 'glassmorphism glassmorphism-hover text-white border-0' 
                         : 'bg-white/80 hover:bg-white border border-gray-200 text-gray-700'
-                      } px-4 py-2 flex items-center space-x-2`}
+                      } px-2 py-2 sm:px-4 flex items-center space-x-2`}
                     >
                       <User className="h-4 w-4" />
                       <span className="hidden sm:inline">
@@ -182,13 +182,13 @@ export default function LandingPage() {
                     <Link href="/login">
                       <Button 
                         variant="ghost" 
-                        className="glassmorphism glassmorphism-hover text-white px-6 border-0"
+                        className="glassmorphism glassmorphism-hover text-white px-3 sm:px-6 text-sm sm:text-base border-0"
                       >
                         LOG IN
                       </Button>
                     </Link>
                     <Link href="/login">
-                      <Button className="glassmorphism glassmorphism-hover text-white px-6 border-0">
+                      <Button className="glassmorphism glassmorphism-hover text-white px-3 sm:px-6 text-sm sm:text-base border-0">
                         GET STARTED
                       </Button>
                     </Link>
@@ -199,30 +199,30 @@ export default function LandingPage() {
           </header>
 
           {/* Beta Badge */}
-          <div className="container mx-auto px-4 pt-12 text-center">
+          <div className="container mx-auto px-4 pt-8 sm:pt-12 text-center">
             <div className="inline-flex items-center justify-center">
-              <div className="glassmorphism rounded-full px-4 py-2 text-sm text-white border-0">
+              <div className="glassmorphism rounded-full px-3 py-2 text-xs sm:text-sm text-white border-0">
                 $1 PER PHARMACY CALLED
               </div>
             </div>
           </div>
 
           {/* Hero Content */}
-          <div className="container mx-auto px-4 py-8 text-center">
+          <div className="container mx-auto px-4 py-6 sm:py-8 text-center">
             <div className="max-w-4xl mx-auto">
-              <h1 className="text-6xl md:text-8xl font-light text-white mb-8 leading-tight tracking-wide" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>
+              <h1 className="text-4xl sm:text-6xl md:text-8xl font-light text-white mb-6 sm:mb-8 leading-tight tracking-wide" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>
                 Find your medications
               </h1>
-              <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed font-normal" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>
+              <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed font-normal px-2" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>
                 RefillRadar is your personal AI Pharmacy Advisor. 
                 Track your medications, check availability and optimize 
                 your refill routine—all in one place.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6 sm:mb-8">
                 <Link href="/login">
                   <Button 
                     size="lg" 
-                    className="glassmorphism glassmorphism-hover text-white px-8 py-4 text-lg rounded-lg border-0"
+                    className="glassmorphism glassmorphism-hover text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-lg border-0 w-full sm:w-auto max-w-xs"
                   >
                     GET STARTED →
                   </Button>
@@ -230,29 +230,29 @@ export default function LandingPage() {
               </div>
 
               {/* Trust indicators */}
-              <div className="flex flex-col items-center space-y-4 mb-12">
-                <div className="flex items-center space-x-6 text-white/70">
+              <div className="flex flex-col items-center space-y-4 sm:space-y-6 mb-8 sm:mb-12">
+                <div className="flex items-center text-white/70 px-4">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>
+                    <span className="text-xs sm:text-sm text-center" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>
                       Hundreds of searches completed daily
                     </span>
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-center space-x-8 text-white/60">
+                <div className="flex items-center justify-center space-x-4 sm:space-x-8 text-white/60 px-2">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>1000+</div>
+                    <div className="text-xl sm:text-2xl font-bold text-white" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>1000+</div>
                     <div className="text-xs uppercase tracking-wide">Satisfied Users</div>
                   </div>
-                  <div className="w-px h-8 bg-white/20"></div>
+                  <div className="w-px h-6 sm:h-8 bg-white/20"></div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>15K+</div>
-                    <div className="text-xs uppercase tracking-wide">Pharmacy Calls Made</div>
+                    <div className="text-xl sm:text-2xl font-bold text-white" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>15K+</div>
+                    <div className="text-xs uppercase tracking-wide">Pharmacy<br className="sm:hidden" /> Calls Made</div>
                   </div>
-                  <div className="w-px h-8 bg-white/20"></div>
+                  <div className="w-px h-6 sm:h-8 bg-white/20"></div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>$50K+</div>
+                    <div className="text-xl sm:text-2xl font-bold text-white" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>$50K+</div>
                     <div className="text-xs uppercase tracking-wide">Saved by Users</div>
                   </div>
                 </div>
@@ -263,23 +263,23 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works Section */}
-      <section className={`py-20 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <section className={`py-12 sm:py-20 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               How RefillRadar Works
             </h2>
-            <p className={`text-xl max-w-3xl mx-auto ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            <p className={`text-lg sm:text-xl max-w-3xl mx-auto px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               Our AI-powered system automates the tedious process of calling pharmacies, 
               saving you time and helping you find your medications faster.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
             {/* Step 1 Card */}
             <div className="relative group">
               <div 
-                className="rounded-2xl h-80 bg-cover bg-center relative overflow-hidden transition-transform duration-300 group-hover:scale-105"
+                className="rounded-2xl h-64 sm:h-80 bg-cover bg-center relative overflow-hidden transition-transform duration-300 group-hover:scale-105"
                 style={{
                   backgroundImage: `url('/images/1.jpg')`,
                 }}
@@ -288,13 +288,13 @@ export default function LandingPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20 rounded-2xl"></div>
                 
                 {/* Content */}
-                <div className="absolute inset-0 p-8 flex flex-col justify-end text-white">
+                <div className="absolute inset-0 p-6 sm:p-8 flex flex-col justify-end text-white">
                   <div className="mb-4">
-                    <div className="w-16 h-16 glassmorphism rounded-full flex items-center justify-center mb-4">
-                      <span className="text-2xl font-bold text-white">1</span>
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 glassmorphism rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                      <span className="text-xl sm:text-2xl font-bold text-white">1</span>
                     </div>
-                    <h3 className="text-2xl font-semibold mb-3">Search & Locate</h3>
-                    <p className="text-gray-100 leading-relaxed">
+                    <h3 className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3">Search & Locate</h3>
+                    <p className="text-gray-100 leading-relaxed text-sm sm:text-base">
                       Enter your medication and location. Our system identifies nearby pharmacies 
                       within your preferred radius and prepares to call them.
                     </p>
@@ -306,7 +306,7 @@ export default function LandingPage() {
             {/* Step 2 Card */}
             <div className="relative group">
               <div 
-                className="rounded-2xl h-80 bg-cover bg-center relative overflow-hidden transition-transform duration-300 group-hover:scale-105"
+                className="rounded-2xl h-64 sm:h-80 bg-cover bg-center relative overflow-hidden transition-transform duration-300 group-hover:scale-105"
                 style={{
                   backgroundImage: `url('/images/2.jpg')`,
                 }}
@@ -315,13 +315,13 @@ export default function LandingPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20 rounded-2xl"></div>
                 
                 {/* Content */}
-                <div className="absolute inset-0 p-8 flex flex-col justify-end text-white">
+                <div className="absolute inset-0 p-6 sm:p-8 flex flex-col justify-end text-white">
                   <div className="mb-4">
-                    <div className="w-16 h-16 glassmorphism rounded-full flex items-center justify-center mb-4">
-                      <span className="text-2xl font-bold text-white">2</span>
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 glassmorphism rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                      <span className="text-xl sm:text-2xl font-bold text-white">2</span>
                     </div>
-                    <h3 className="text-2xl font-semibold mb-3">AI Calls Pharmacies</h3>
-                    <p className="text-gray-100 leading-relaxed">
+                    <h3 className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3">AI Calls Pharmacies</h3>
+                    <p className="text-gray-100 leading-relaxed text-sm sm:text-base">
                       Our AI voice agent simultaneously calls each pharmacy to check real-time 
                       availability, pricing, and stock levels for your prescription.
                     </p>
@@ -333,7 +333,7 @@ export default function LandingPage() {
             {/* Step 3 Card */}
             <div className="relative group">
               <div 
-                className="rounded-2xl h-80 bg-cover bg-center relative overflow-hidden transition-transform duration-300 group-hover:scale-105"
+                className="rounded-2xl h-64 sm:h-80 bg-cover bg-center relative overflow-hidden transition-transform duration-300 group-hover:scale-105"
                 style={{
                   backgroundImage: `url('/images/3.jpg')`,
                 }}
@@ -342,13 +342,13 @@ export default function LandingPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20 rounded-2xl"></div>
                 
                 {/* Content */}
-                <div className="absolute inset-0 p-8 flex flex-col justify-end text-white">
+                <div className="absolute inset-0 p-6 sm:p-8 flex flex-col justify-end text-white">
                   <div className="mb-4">
-                    <div className="w-16 h-16 glassmorphism rounded-full flex items-center justify-center mb-4">
-                      <span className="text-2xl font-bold text-white">3</span>
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 glassmorphism rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                      <span className="text-xl sm:text-2xl font-bold text-white">3</span>
                     </div>
-                    <h3 className="text-2xl font-semibold mb-3">Get Results</h3>
-                    <p className="text-gray-100 leading-relaxed">
+                    <h3 className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3">Get Results</h3>
+                    <p className="text-gray-100 leading-relaxed text-sm sm:text-base">
                       Receive ranked results with availability, pricing, and confidence scores. 
                       Choose the best pharmacy option and save time and money.
                     </p>
@@ -361,88 +361,88 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials Section */}
-      <section className={`py-20 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+      <section className={`py-12 sm:py-20 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               What Our Users Say
             </h2>
-            <p className={`text-xl ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            <p className={`text-lg sm:text-xl px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               Thousands of patients trust RefillRadar to find their medications faster
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <div className="rounded-2xl p-8 relative overflow-hidden" style={{
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
+            <div className="rounded-2xl p-6 sm:p-8 relative overflow-hidden" style={{
               background: 'radial-gradient(circle at 30% 20%, #60A5FA 0%, #3B82F6 25%, #1E40AF 70%, #1E3A8A 100%)'
             }}>
               <div className="relative z-10">
-                <div className="flex items-center mb-6">
+                <div className="flex items-center mb-4 sm:mb-6">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 text-white fill-current" />
+                    <Star key={i} className="h-4 w-4 sm:h-5 sm:w-5 text-white fill-current" />
                   ))}
                 </div>
-                <p className="text-white mb-8 text-lg leading-relaxed">
+                <p className="text-white mb-6 sm:mb-8 text-base sm:text-lg leading-relaxed">
                   &ldquo;RefillRadar saved me hours of calling pharmacies when my son needed his inhaler during the shortage. 
                   Found it in stock at 3 locations within minutes!&rdquo;
                 </p>
                 <div className="flex items-center">
-                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mr-4">
-                    <span className="text-white font-semibold">SJ</span>
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mr-3 sm:mr-4">
+                    <span className="text-white font-semibold text-sm sm:text-base">SJ</span>
                   </div>
                   <div>
-                    <p className="font-semibold text-white">Sarah Johnson</p>
-                    <p className="text-blue-100 text-sm">Parent from Denver, CO</p>
+                    <p className="font-semibold text-white text-sm sm:text-base">Sarah Johnson</p>
+                    <p className="text-blue-100 text-xs sm:text-sm">Parent from Denver, CO</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl p-8 relative overflow-hidden" style={{
+            <div className="rounded-2xl p-6 sm:p-8 relative overflow-hidden" style={{
               background: 'radial-gradient(circle at 30% 20%, #4ADE80 0%, #22C55E 25%, #16A34A 70%, #15803D 100%)'
             }}>
               <div className="relative z-10">
-                <div className="flex items-center mb-6">
+                <div className="flex items-center mb-4 sm:mb-6">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 text-white fill-current" />
+                    <Star key={i} className="h-4 w-4 sm:h-5 sm:w-5 text-white fill-current" />
                   ))}
                 </div>
-                <p className="text-white mb-8 text-lg leading-relaxed">
+                <p className="text-white mb-6 sm:mb-8 text-base sm:text-lg leading-relaxed">
                   &ldquo;Managing diabetes medications for my elderly mother was stressful until I found RefillRadar. 
                   Now I can easily compare prices and availability across all local pharmacies.&rdquo;
                 </p>
                 <div className="flex items-center">
-                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mr-4">
-                    <span className="text-white font-semibold">MR</span>
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mr-3 sm:mr-4">
+                    <span className="text-white font-semibold text-sm sm:text-base">MR</span>
                   </div>
                   <div>
-                    <p className="font-semibold text-white">Michael Rodriguez</p>
-                    <p className="text-green-100 text-sm">Caregiver from Austin, TX</p>
+                    <p className="font-semibold text-white text-sm sm:text-base">Michael Rodriguez</p>
+                    <p className="text-green-100 text-xs sm:text-sm">Caregiver from Austin, TX</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl p-8 relative overflow-hidden" style={{
+            <div className="rounded-2xl p-6 sm:p-8 relative overflow-hidden" style={{
               background: 'radial-gradient(circle at 30% 20%, #22D3EE 0%, #06B6D4 25%, #0891B2 70%, #0E7490 100%)'
             }}>
               <div className="relative z-10">
-                <div className="flex items-center mb-6">
+                <div className="flex items-center mb-4 sm:mb-6">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 text-white fill-current" />
+                    <Star key={i} className="h-4 w-4 sm:h-5 sm:w-5 text-white fill-current" />
                   ))}
                 </div>
-                <p className="text-white mb-8 text-lg leading-relaxed">
+                <p className="text-white mb-6 sm:mb-8 text-base sm:text-lg leading-relaxed">
                   &ldquo;As someone with multiple chronic conditions, RefillRadar has been a game-changer. 
                   I save $200+ monthly by finding the best prices automatically.&rdquo;
                 </p>
                 <div className="flex items-center">
-                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mr-4">
-                    <span className="text-white font-semibold">AL</span>
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mr-3 sm:mr-4">
+                    <span className="text-white font-semibold text-sm sm:text-base">AL</span>
                   </div>
                   <div>
-                    <p className="font-semibold text-white">Anna Lee</p>
-                    <p className="text-cyan-100 text-sm">Patient from Seattle, WA</p>
+                    <p className="font-semibold text-white text-sm sm:text-base">Anna Lee</p>
+                    <p className="text-cyan-100 text-xs sm:text-sm">Patient from Seattle, WA</p>
                   </div>
                 </div>
               </div>
@@ -452,18 +452,18 @@ export default function LandingPage() {
       </section>
 
       {/* Choose Your Plan Section */}
-      <section className={`py-20 ${isDarkMode ? 'bg-black' : 'bg-gray-50'}`}>
+      <section className={`py-12 sm:py-20 ${isDarkMode ? 'bg-black' : 'bg-gray-50'}`}>
         <div className="container mx-auto px-4">
-          <div className="text-center mb-20">
-            <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          <div className="text-center mb-12 sm:mb-20">
+            <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               Choose Your Plan
             </h2>
-            <p className={`text-xl ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            <p className={`text-lg sm:text-xl px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               Simple, transparent pricing that scales with your needs
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-start">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto items-start">
             {/* Pay As You Go Plan */}
             <div className="relative pt-6 h-full">
               <div 

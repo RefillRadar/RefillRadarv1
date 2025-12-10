@@ -19,13 +19,19 @@ interface MapProps {
 export default function Map({ center, zoom, radius, pharmacies }: MapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
+  const markersRef = useRef<any[]>([])
+  const circleRef = useRef<any>(null)
+  const leafletRef = useRef<any>(null)
 
+  // Initialize map only once on mount
   useEffect(() => {
     if (typeof window === 'undefined' || !mapRef.current) return
 
+    let isMounted = true
+
     const initMap = async () => {
-      // Dynamically import Leaflet to avoid SSR issues
       const L = (await import('leaflet')).default
+      leafletRef.current = L
 
       // Fix for default marker icons in webpack
       delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -35,21 +41,24 @@ export default function Map({ center, zoom, radius, pharmacies }: MapProps) {
         shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
       })
 
-      // Initialize map
-      if (!mapInstanceRef.current && mapRef.current) {
-        mapInstanceRef.current = L.map(mapRef.current).setView(center, zoom)
+      if (!isMounted || !mapRef.current) return
 
-        // Use dark theme map tiles with API key
+      // Initialize map only if not already initialized
+      if (!mapInstanceRef.current) {
+        mapInstanceRef.current = L.map(mapRef.current, {
+          center: center,
+          zoom: zoom,
+          zoomControl: true,
+        })
+
         const stadiaApiKey = process.env.NEXT_PUBLIC_STADIA_MAPS_API_KEY
         
         if (stadiaApiKey) {
-          // Use Stadia Maps with API key
           L.tileLayer(`https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key=${stadiaApiKey}`, {
             attribution: '© Stadia Maps, © OpenMapTiles, © OpenStreetMap contributors',
             maxZoom: 20
           }).addTo(mapInstanceRef.current)
         } else {
-          // Fallback to OpenStreetMap tiles if no API key
           console.warn('NEXT_PUBLIC_STADIA_MAPS_API_KEY not found, using OpenStreetMap fallback')
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
@@ -57,27 +66,63 @@ export default function Map({ center, zoom, radius, pharmacies }: MapProps) {
           }).addTo(mapInstanceRef.current)
         }
       }
+    }
 
-      const map = mapInstanceRef.current
+    initMap()
 
-      // Clear existing markers and circles
-      map.eachLayer((layer: any) => {
-        if (layer instanceof L.Marker || layer instanceof L.Circle) {
-          map.removeLayer(layer)
+    // Cleanup only on unmount
+    return () => {
+      isMounted = false
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove()
+        mapInstanceRef.current = null
+      }
+      markersRef.current = []
+      circleRef.current = null
+      leafletRef.current = null
+    }
+  }, []) // Empty dependency array - only run on mount/unmount
+
+  // Update markers and circle when props change
+  useEffect(() => {
+    const L = leafletRef.current
+    const map = mapInstanceRef.current
+    
+    if (!L || !map) return
+
+    // Wait for map to be ready
+    if (!map._loaded) {
+      map.once('load', () => updateMapContent())
+      return
+    }
+
+    updateMapContent()
+
+    function updateMapContent() {
+      // Clear existing markers
+      markersRef.current.forEach(marker => {
+        if (map.hasLayer(marker)) {
+          map.removeLayer(marker)
         }
       })
+      markersRef.current = []
 
-      // Add radius circle with modern styling
-      L.circle(center, {
+      // Clear existing circle
+      if (circleRef.current && map.hasLayer(circleRef.current)) {
+        map.removeLayer(circleRef.current)
+      }
+
+      // Add radius circle
+      circleRef.current = L.circle(center, {
         color: '#3b82f6',
         fillColor: '#3b82f6',
         fillOpacity: 0.08,
         weight: 2,
         opacity: 0.8,
-        radius: radius * 1609.34 // Convert miles to meters
+        radius: radius * 1609.34
       }).addTo(map)
 
-      // Add custom center marker
+      // Add center marker
       const centerIcon = L.divIcon({
         className: 'custom-center-marker',
         html: `
@@ -106,7 +151,7 @@ export default function Map({ center, zoom, radius, pharmacies }: MapProps) {
         iconAnchor: [10, 10]
       })
       
-      L.marker(center, { icon: centerIcon }).addTo(map)
+      const centerMarker = L.marker(center, { icon: centerIcon }).addTo(map)
         .bindPopup(`
           <div style="
             background: linear-gradient(135deg, #1f2937, #374151);
@@ -117,16 +162,15 @@ export default function Map({ center, zoom, radius, pharmacies }: MapProps) {
             font-family: system-ui;
           ">
             <h3 style="margin: 0 0 4px 0; font-weight: 600; color: #60a5fa;">📍 Search Center</h3>
-            <p style="margin: 0; font-size: 13px; color: #d1d5db;">Zip: ${mapRef.current?.dataset?.zipcode || 'Unknown'}</p>
-            <p style="margin: 2px 0 0 0; font-size: 13px; color: #d1d5db;">Radius: ${radius} miles</p>
+            <p style="margin: 0; font-size: 13px; color: #d1d5db;">Radius: ${radius} miles</p>
           </div>
         `, {
           className: 'custom-popup'
         })
+      markersRef.current.push(centerMarker)
 
-      // Add custom pharmacy markers
+      // Add pharmacy markers
       pharmacies.forEach(pharmacy => {
-        // Custom pharmacy icon
         const pharmacyIcon = L.divIcon({
           className: 'custom-pharmacy-marker',
           html: `
@@ -205,25 +249,19 @@ export default function Map({ center, zoom, radius, pharmacies }: MapProps) {
           maxWidth: 300,
           closeButton: true
         })
+        
+        markersRef.current.push(marker)
       })
 
-      // Fit map to show all markers if there are pharmacies
+      // Update map view
       if (pharmacies.length > 0) {
         const group = L.featureGroup([
           L.marker(center),
           ...pharmacies.map(p => L.marker([p.lat, p.lng]))
         ])
         map.fitBounds(group.getBounds().pad(0.1))
-      }
-    }
-
-    initMap()
-
-    // Cleanup
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
-        mapInstanceRef.current = null
+      } else {
+        map.setView(center, zoom)
       }
     }
   }, [center, zoom, radius, pharmacies])

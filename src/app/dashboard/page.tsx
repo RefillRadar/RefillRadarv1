@@ -46,7 +46,7 @@ export default function Dashboard() {
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [selectedPharmacies, setSelectedPharmacies] = useState<string[]>([])
   const [showPharmacySelection, setShowPharmacySelection] = useState(false)
-  const [selectedPaymentOption, setSelectedPaymentOption] = useState<'per-call' | 'bulk' | null>(null)
+  const [selectedPaymentOption, setSelectedPaymentOption] = useState<'pay-as-you-go' | 'base-plan' | 'unlimited' | null>(null)
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [savedMedicines, setSavedMedicines] = useState<Array<{id: string, name: string, dosage: string, lastUsed: string}>>([])
   const [showSavedMedicines, setShowSavedMedicines] = useState(false)
@@ -415,7 +415,7 @@ export default function Dashboard() {
       alert('Please select at least one pharmacy to call')
       return
     }
-    setSelectedPaymentOption('per-call') // Default to per-call
+    setSelectedPaymentOption('pay-as-you-go') // Default to pay-as-you-go
     setShowPayment(true)
   }
 
@@ -428,9 +428,11 @@ export default function Dashboard() {
     setIsSearching(true)
     
     try {
-      const amount = selectedPaymentOption === 'per-call' 
-        ? (selectedPharmacies.length <= 10 ? Math.min(selectedPharmacies.length, 7) : selectedPharmacies.length)
-        : 7
+      const amount = selectedPaymentOption === 'pay-as-you-go' 
+        ? selectedPharmacies.length
+        : selectedPaymentOption === 'base-plan' 
+        ? 20
+        : 50
 
       // Create Stripe Checkout session
       const response = await fetch('/api/stripe/create-checkout-session', {
@@ -542,9 +544,11 @@ export default function Dashboard() {
     console.log('Payment Option:', {
       type: selectedPaymentOption,
       pharmaciesSelected: selectedPharmacies.length,
-      estimatedCost: selectedPaymentOption === 'per-call' 
-        ? `$${selectedPharmacies.length <= 10 ? Math.min(selectedPharmacies.length, 7) : selectedPharmacies.length}`
-        : '$7'
+      estimatedCost: selectedPaymentOption === 'pay-as-you-go' 
+        ? `$${selectedPharmacies.length}`
+        : selectedPaymentOption === 'base-plan'
+        ? '$20'
+        : '$50'
     })
     console.log('Selected Pharmacies:', selectedPharmacyData.map(p => ({
       name: p.name,
@@ -560,7 +564,7 @@ export default function Dashboard() {
     handlePaymentChoice(selectedPaymentOption!)
   }
 
-  const handlePaymentChoice = async (choice: 'per-call' | 'bulk') => {
+  const handlePaymentChoice = async (choice: 'pay-as-you-go' | 'base-plan' | 'unlimited') => {
     setShowPayment(false)
     setIsSearching(true)
     
@@ -642,7 +646,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
       {/* Payment Cancelled Notification */}
       {showPaymentCancelledNotice && (
         <div className="fixed top-4 right-4 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2">
@@ -888,12 +892,12 @@ export default function Dashboard() {
 
                 {/* Custom Slider Styles */}
                 <style jsx>{`
-                  .custom-slider [data-orientation="horizontal"] {
+                  .custom-slider :global([data-orientation="horizontal"]) {
                     height: 20px;
                     position: relative;
                   }
                   
-                  .custom-slider [data-orientation="horizontal"] [data-radix-slider-track] {
+                  .custom-slider :global([data-orientation="horizontal"]) :global([data-radix-slider-track]) {
                     background: ${isDarkMode ? 'linear-gradient(90deg, #9ca3af 0%, #d1d5db 100%)' : 'linear-gradient(90deg, #d1d5db 0%, #9ca3af 100%)'};
                     height: 4px;
                     border-radius: 8px;
@@ -902,13 +906,13 @@ export default function Dashboard() {
                     box-shadow: ${isDarkMode ? 'inset 0 1px 3px rgba(0, 0, 0, 0.2)' : 'inset 0 1px 3px rgba(0, 0, 0, 0.1)'};
                   }
                   
-                  .custom-slider [data-orientation="horizontal"] [data-radix-slider-range] {
+                  .custom-slider :global([data-orientation="horizontal"]) :global([data-radix-slider-range]) {
                     background: transparent;
                     height: 100%;
                     border-radius: 8px;
                   }
                   
-                  .custom-slider [data-orientation="horizontal"] [data-radix-slider-thumb] {
+                  .custom-slider :global([data-orientation="horizontal"]) :global([data-radix-slider-thumb]) {
                     display: block;
                     width: 20px;
                     height: 20px;
@@ -922,17 +926,17 @@ export default function Dashboard() {
                     z-index: 10;
                   }
                   
-                  .custom-slider [data-orientation="horizontal"] [data-radix-slider-thumb]:hover {
+                  .custom-slider :global([data-orientation="horizontal"]) :global([data-radix-slider-thumb]:hover) {
                     transform: scale(1.15);
                     box-shadow: ${isDarkMode ? '0 6px 20px rgba(59, 130, 246, 0.5), 0 0 0 8px rgba(59, 130, 246, 0.1)' : '0 6px 20px rgba(59, 130, 246, 0.4), 0 0 0 8px rgba(59, 130, 246, 0.08)'};
                   }
                   
-                  .custom-slider [data-orientation="horizontal"] [data-radix-slider-thumb]:active {
+                  .custom-slider :global([data-orientation="horizontal"]) :global([data-radix-slider-thumb]:active) {
                     transform: scale(1.05);
                     box-shadow: ${isDarkMode ? '0 2px 8px rgba(59, 130, 246, 0.6), 0 0 0 12px rgba(59, 130, 246, 0.15)' : '0 2px 8px rgba(59, 130, 246, 0.5), 0 0 0 12px rgba(59, 130, 246, 0.12)'};
                   }
                   
-                  .custom-slider [data-orientation="horizontal"] [data-radix-slider-thumb]:focus {
+                  .custom-slider :global([data-orientation="horizontal"]) :global([data-radix-slider-thumb]:focus) {
                     outline: none;
                     box-shadow: ${isDarkMode ? '0 4px 12px rgba(59, 130, 246, 0.4), 0 0 0 4px rgba(59, 130, 246, 0.3)' : '0 4px 12px rgba(59, 130, 246, 0.3), 0 0 0 4px rgba(59, 130, 246, 0.25)'};
                   }
@@ -1711,51 +1715,45 @@ export default function Dashboard() {
                 <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   Ready to call <span className={`font-semibold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{selectedPharmacies.length}</span> selected pharmacies
                 </p>
-                <div className={`flex items-center justify-center gap-2 mt-2 text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                <div className={`flex items-center justify-center gap-2 text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                   <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse"></div>
                   <span>Secure • Instant • No subscription</span>
                 </div>
               </div>
 
               {/* Payment Options */}
-              <div className="space-y-4 mb-6">
-                {/* Per-call option */}
+              <div className="space-y-3 mb-6">
+                {/* Pay As You Go option */}
                 <div 
-                  onClick={() => setSelectedPaymentOption('per-call')}
-                  className={`group relative overflow-hidden border rounded-2xl p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
-                    selectedPaymentOption === 'per-call'
+                  onClick={() => setSelectedPaymentOption('pay-as-you-go')}
+                  className={`group relative overflow-hidden border rounded-2xl p-4 cursor-pointer transition-all duration-300 ${
+                    selectedPaymentOption === 'pay-as-you-go'
                       ? isDarkMode
-                        ? 'bg-gradient-to-r from-blue-600/30 to-blue-500/30 border-blue-400/80 shadow-xl shadow-blue-500/20'
-                        : 'bg-blue-50 border-blue-300 shadow-lg shadow-blue-200/30'
+                        ? 'bg-gradient-to-r from-gray-600/30 to-gray-500/30 border-gray-400/80 shadow-xl shadow-gray-500/20'
+                        : 'bg-gray-50 border-gray-300 shadow-lg shadow-gray-200/30'
                       : isDarkMode
-                        ? 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 hover:from-blue-600/20 hover:to-blue-500/20 border-gray-600/50 hover:border-blue-400/50 hover:shadow-xl hover:shadow-blue-500/10'
-                        : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-lg'
+                        ? 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 hover:from-gray-600/20 hover:to-gray-500/20 border-gray-600/50 hover:border-gray-400/50 hover:shadow-xl hover:shadow-gray-500/10'
+                        : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-lg'
                   }`}
                 >
                   <div className="flex justify-between items-center">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          selectedPaymentOption === 'per-call'
-                            ? 'border-blue-400 bg-blue-400'
+                          selectedPaymentOption === 'pay-as-you-go'
+                            ? 'border-gray-400 bg-gray-400'
                             : isDarkMode
-                              ? 'border-gray-600 group-hover:border-blue-400'
-                              : 'border-gray-300 group-hover:border-blue-400'
+                              ? 'border-gray-600 group-hover:border-gray-400'
+                              : 'border-gray-300 group-hover:border-gray-400'
                         }`}>
-                          {selectedPaymentOption === 'per-call' && (
+                          {selectedPaymentOption === 'pay-as-you-go' && (
                             <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
                           )}
                         </div>
-                        <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Pay Per Call</h4>
-                        <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
-                          Recommended
-                        </span>
+                        <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Pay As You Go</h4>
                       </div>
                       <p className={`text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {selectedPharmacies.length <= 10 
-                          ? `$1 per call • Max $7 for up to 10 calls` 
-                          : `$1 per call • ${selectedPharmacies.length} calls total`
-                        }
+                        $1 per pharmacy • Only pay for what you use
                       </p>
                       <div className={`flex items-center gap-2 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                         <CheckCircle className="h-4 w-4 text-green-400" />
@@ -1764,78 +1762,109 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right">
                       <div className={`text-3xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        ${selectedPharmacies.length <= 10 
-                          ? Math.min(selectedPharmacies.length, 7) 
-                          : selectedPharmacies.length
-                        }
+                        ${selectedPharmacies.length}
                       </div>
                       <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total cost</div>
                     </div>
                   </div>
-                  {/* Hover effect gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-500/5 to-purple-600/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </div>
 
-                {/* Bulk option */}
+                {/* Base Plan option */}
                 <div 
-                  onClick={() => selectedPharmacies.length > 10 ? setSelectedPaymentOption('bulk') : null}
-                  className={`group relative overflow-hidden border rounded-2xl p-6 transition-all duration-300 ${
-                    selectedPharmacies.length <= 10 
+                  onClick={() => setSelectedPaymentOption('base-plan')}
+                  className={`group relative overflow-hidden border rounded-2xl p-4 cursor-pointer transition-all duration-300 ${
+                    selectedPaymentOption === 'base-plan'
                       ? isDarkMode
-                        ? 'bg-gray-800/30 border-gray-700/50 cursor-not-allowed opacity-60'
-                        : 'bg-gray-50 border-gray-200 cursor-not-allowed opacity-60'
-                      : selectedPaymentOption === 'bulk'
-                      ? isDarkMode
-                        ? 'bg-gradient-to-r from-purple-600/30 to-purple-500/30 border-purple-400/80 shadow-xl shadow-purple-500/20 cursor-pointer'
-                        : 'bg-purple-50 border-purple-300 shadow-lg shadow-purple-200/30 cursor-pointer'
+                        ? 'bg-gradient-to-r from-green-600/30 to-green-500/30 border-green-400/80 shadow-xl shadow-green-500/20'
+                        : 'bg-green-50 border-green-300 shadow-lg shadow-green-200/30'
                       : isDarkMode
-                        ? 'bg-gradient-to-r from-purple-800/50 to-purple-700/50 hover:from-purple-600/20 hover:to-purple-500/20 border-gray-600/50 hover:border-purple-400/50 cursor-pointer hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/10'
-                        : 'bg-white border-gray-200 hover:border-purple-300 hover:shadow-lg cursor-pointer hover:scale-[1.02]'
+                        ? 'bg-gradient-to-r from-green-800/50 to-green-700/50 hover:from-green-600/20 hover:to-green-500/20 border-gray-600/50 hover:border-green-400/50 hover:shadow-xl hover:shadow-green-500/10'
+                        : 'bg-white border-gray-200 hover:border-green-300 hover:shadow-lg'
                   }`}
                 >
                   <div className="flex justify-between items-center">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          selectedPharmacies.length <= 10 
-                            ? isDarkMode ? 'border-gray-600 bg-gray-800' : 'border-gray-300 bg-gray-100'
-                            : selectedPaymentOption === 'bulk'
-                            ? 'border-purple-400 bg-purple-400'
+                          selectedPaymentOption === 'base-plan'
+                            ? 'border-green-400 bg-green-400'
                             : isDarkMode
-                              ? 'border-gray-600 group-hover:border-purple-400'
-                              : 'border-gray-300 group-hover:border-purple-400'
+                              ? 'border-gray-600 group-hover:border-green-400'
+                              : 'border-gray-300 group-hover:border-green-400'
                         }`}>
-                          {selectedPaymentOption === 'bulk' && selectedPharmacies.length > 10 && (
+                          {selectedPaymentOption === 'base-plan' && (
                             <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
                           )}
                         </div>
-                        <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Bulk Rate</h4>
-                        {selectedPharmacies.length > 10 && (
-                          <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full border border-purple-500/30">
-                            Save ${selectedPharmacies.length - 7}
-                          </span>
-                        )}
+                        <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Base Plan</h4>
+                        <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
+                          Recommended
+                        </span>
                       </div>
                       <p className={`text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {selectedPharmacies.length <= 10 
-                          ? 'Available for 10+ pharmacy calls'
-                          : `$7 flat rate • Save $${(selectedPharmacies.length - 7).toFixed(0)} vs per-call pricing`
-                        }
+                        25 pharmacy calls included • $0.80 per call after
                       </p>
                       <div className={`flex items-center gap-2 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                        <Crown className="h-4 w-4 text-purple-400" />
-                        <span>{selectedPharmacies.length <= 10 ? 'Unlock with 10+ selections' : 'Best value for bulk calling'}</span>
+                        <CheckCircle className="h-4 w-4 text-green-400" />
+                        <span>Great value for regular users • Monthly renewal</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className={`text-3xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>$7</div>
-                      <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Flat rate</div>
+                      <div className={`text-3xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        $20
+                      </div>
+                      <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Per month</div>
                     </div>
                   </div>
-                  {/* Hover effect gradient */}
-                  {selectedPharmacies.length > 10 && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-600/0 via-purple-500/5 to-pink-600/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  )}
+                </div>
+
+                {/* Unlimited Plan option */}
+                <div 
+                  onClick={() => setSelectedPaymentOption('unlimited')}
+                  className={`group relative overflow-hidden border rounded-2xl p-4 cursor-pointer transition-all duration-300 ${
+                    selectedPaymentOption === 'unlimited'
+                      ? isDarkMode
+                        ? 'bg-gradient-to-r from-blue-600/30 to-purple-500/30 border-blue-400/80 shadow-xl shadow-blue-500/20'
+                        : 'bg-blue-50 border-blue-300 shadow-lg shadow-blue-200/30'
+                      : isDarkMode
+                        ? 'bg-gradient-to-r from-blue-800/50 to-purple-700/50 hover:from-blue-600/20 hover:to-purple-500/20 border-gray-600/50 hover:border-blue-400/50 hover:shadow-xl hover:shadow-blue-500/10'
+                        : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-lg'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          selectedPaymentOption === 'unlimited'
+                            ? 'border-blue-400 bg-blue-400'
+                            : isDarkMode
+                              ? 'border-gray-600 group-hover:border-blue-400'
+                              : 'border-gray-300 group-hover:border-blue-400'
+                        }`}>
+                          {selectedPaymentOption === 'unlimited' && (
+                            <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                          )}
+                        </div>
+                        <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Unlimited</h4>
+                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30">
+                          Best Value
+                        </span>
+                      </div>
+                      <p className={`text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Unlimited pharmacy calls • Priority AI calling
+                      </p>
+                      <div className={`flex items-center gap-2 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                        <Crown className="h-4 w-4 text-blue-400" />
+                        <span>For frequent searches • Premium support</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-3xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        $50
+                      </div>
+                      <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Per month</div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1852,9 +1881,11 @@ export default function Dashboard() {
                   disabled={!selectedPaymentOption}
                   className={`w-full py-4 text-lg font-semibold rounded-xl transition-all duration-300 ${
                     selectedPaymentOption
-                      ? selectedPaymentOption === 'per-call'
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-blue-500/25 hover:scale-[1.02]'
-                        : 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white shadow-lg hover:shadow-purple-500/25 hover:scale-[1.02]'
+                      ? selectedPaymentOption === 'pay-as-you-go'
+                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white shadow-lg hover:shadow-gray-500/25 hover:scale-[1.02]'
+                        : selectedPaymentOption === 'base-plan'
+                        ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-green-500/25 hover:scale-[1.02]'
+                        : 'bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800 text-white shadow-lg hover:shadow-blue-500/25 hover:scale-[1.02]'
                       : isDarkMode
                         ? 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -1870,9 +1901,11 @@ export default function Dashboard() {
                         </>
                       ) : (
                         <>
-                          Pay ${selectedPaymentOption === 'per-call' 
-                            ? (selectedPharmacies.length <= 10 ? Math.min(selectedPharmacies.length, 7) : selectedPharmacies.length)
-                            : 7
+                          Pay ${selectedPaymentOption === 'pay-as-you-go' 
+                            ? selectedPharmacies.length
+                            : selectedPaymentOption === 'base-plan'
+                            ? '20'
+                            : '50'
                           } - Continue to Checkout
                         </>
                       )}
@@ -1981,9 +2014,11 @@ export default function Dashboard() {
                   ) : (
                     <>
                       <CreditCard className="h-5 w-5 mr-2 inline" />
-                      Start Calling - Pay ${selectedPaymentOption === 'per-call' 
-                        ? (selectedPharmacies.length <= 10 ? Math.min(selectedPharmacies.length, 7) : selectedPharmacies.length)
-                        : 7
+                      Start Calling - Pay ${selectedPaymentOption === 'pay-as-you-go' 
+                        ? selectedPharmacies.length
+                        : selectedPaymentOption === 'base-plan'
+                        ? '20'
+                        : '50'
                       }
                     </>
                   )}
