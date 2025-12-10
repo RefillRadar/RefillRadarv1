@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Heart, MapPin, Phone, DollarSign, CheckCircle, Star, Clock, Shield, Bell, LogOut, User, Sun, Moon, Crown } from "lucide-react"
+import { Heart, MapPin, Phone, DollarSign, CheckCircle, Star, Clock, Shield, Bell, LogOut, User, Sun, Moon, Crown, ChevronDown } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 
@@ -11,6 +11,7 @@ export default function LandingPage() {
   const [selectedPlan, setSelectedPlan] = useState('premium')
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(true)
+  const [openFaqItems, setOpenFaqItems] = useState<{[key: string]: boolean}>({})
   const { user, loading, signOut } = useAuth()
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -75,6 +76,14 @@ export default function LandingPage() {
     const newTheme = !isDarkMode
     setIsDarkMode(newTheme)
     localStorage.setItem('landing-theme', newTheme ? 'dark' : 'light')
+  }
+
+  // Toggle FAQ item
+  const toggleFaqItem = (id: string) => {
+    setOpenFaqItems(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }))
   }
 
   // Close dropdown when clicking outside
@@ -710,6 +719,132 @@ export default function LandingPage() {
               </div>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className={`py-12 sm:py-20 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Frequently Asked Questions
+            </h2>
+            <p className={`text-lg sm:text-xl px-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Everything you need to know about RefillRadar
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto space-y-4">
+            {/* FAQ Item 1 */}
+            <div className={`rounded-xl border ${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'} overflow-hidden`}>
+              <button
+                onClick={() => toggleFaqItem('faq1')}
+                className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50/5 transition-colors"
+              >
+                <span className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  How does RefillRadar work?
+                </span>
+                <ChevronDown className={`h-5 w-5 transition-transform ${openFaqItems.faq1 ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+              </button>
+              {openFaqItems.faq1 && (
+                <div className={`px-6 pb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <p>Simply enter your medication name and location, and our system automatically contacts pharmacies in your area to check real-time availability and pricing. You'll receive ranked results showing which pharmacies have your medication in stock and at what price.</p>
+                </div>
+              )}
+            </div>
+
+            {/* FAQ Item 2 */}
+            <div className={`rounded-xl border ${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'} overflow-hidden`}>
+              <button
+                onClick={() => toggleFaqItem('faq2')}
+                className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50/5 transition-colors"
+              >
+                <span className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  What's the difference between the pricing plans?
+                </span>
+                <ChevronDown className={`h-5 w-5 transition-transform ${openFaqItems.faq2 ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+              </button>
+              {openFaqItems.faq2 && (
+                <div className={`px-6 pb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <p><strong>Pay As You Go:</strong> $1 per pharmacy contacted - perfect for occasional searches.</p>
+                  <p><strong>Base Plan:</strong> $20/month for 25 pharmacy calls (20% savings) - great for regular users.</p>
+                  <p><strong>Unlimited:</strong> $50/month for unlimited searches with priority processing and advanced features - best for frequent users.</p>
+                </div>
+              )}
+            </div>
+
+            {/* FAQ Item 3 */}
+            <div className={`rounded-xl border ${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'} overflow-hidden`}>
+              <button
+                onClick={() => toggleFaqItem('faq3')}
+                className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50/5 transition-colors"
+              >
+                <span className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  How accurate are the availability checks?
+                </span>
+                <ChevronDown className={`h-5 w-5 transition-transform ${openFaqItems.faq3 ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+              </button>
+              {openFaqItems.faq3 && (
+                <div className={`px-6 pb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <p>Our system provides real-time data by directly contacting pharmacies when you search. We include confidence scores with each result to help you understand the reliability of the information. While pharmacy inventory can change quickly, our results reflect the most current availability at the time of your search.</p>
+                </div>
+              )}
+            </div>
+
+            {/* FAQ Item 4 */}
+            <div className={`rounded-xl border ${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'} overflow-hidden`}>
+              <button
+                onClick={() => toggleFaqItem('faq4')}
+                className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50/5 transition-colors"
+              >
+                <span className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Is my personal and payment information secure?
+                </span>
+                <ChevronDown className={`h-5 w-5 transition-transform ${openFaqItems.faq4 ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+              </button>
+              {openFaqItems.faq4 && (
+                <div className={`px-6 pb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <p>Absolutely. We use enterprise-grade encryption and are HIPAA compliant. We only collect the minimum information needed to perform your searches and never store sensitive health data. All payments are processed securely through Stripe, and we never see or store your payment details.</p>
+                </div>
+              )}
+            </div>
+
+            {/* FAQ Item 5 */}
+            <div className={`rounded-xl border ${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'} overflow-hidden`}>
+              <button
+                onClick={() => toggleFaqItem('faq5')}
+                className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50/5 transition-colors"
+              >
+                <span className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Can I cancel anytime?
+                </span>
+                <ChevronDown className={`h-5 w-5 transition-transform ${openFaqItems.faq5 ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+              </button>
+              {openFaqItems.faq5 && (
+                <div className={`px-6 pb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <p>Yes! You can cancel your subscription at any time with no penalties or fees. For pay-as-you-go users, there's no commitment at all - you only pay when you use the service. If you cancel a monthly plan, you'll continue to have access until the end of your billing period.</p>
+                </div>
+              )}
+            </div>
+
+            {/* FAQ Item 6 */}
+            <div className={`rounded-xl border ${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'} overflow-hidden`}>
+              <button
+                onClick={() => toggleFaqItem('faq6')}
+                className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50/5 transition-colors"
+              >
+                <span className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  What types of medications can I search for?
+                </span>
+                <ChevronDown className={`h-5 w-5 transition-transform ${openFaqItems.faq6 ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+              </button>
+              {openFaqItems.faq6 && (
+                <div className={`px-6 pb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <p>You can search for most prescription medications, including brand name and generic drugs. Our system works particularly well for common medications like ADHD treatments, diabetes medications, blood pressure medications, and more. If you're unsure whether we can help with a specific medication, try a search - it's only $1 per pharmacy contacted.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
