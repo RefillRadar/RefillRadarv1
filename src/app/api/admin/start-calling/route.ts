@@ -5,15 +5,15 @@ import { qstash, PharmacyCallJob, getBusinessHoursDelay, isBusinessHours } from 
 
 export async function POST(request: NextRequest) {
   try {
-    // Check admin authentication - BYPASSED FOR TESTING
-    // const { isAdmin, error: authError } = await checkAdminAuth()
-    // 
-    // if (!isAdmin) {
-    //   return NextResponse.json(
-    //     { error: authError || 'Admin access required' },
-    //     { status: authError === 'Unauthorized' ? 401 : 403 }
-    //   )
-    // }
+    // Check admin authentication
+    const { isAdmin, error: authError } = await checkAdminAuth()
+    
+    if (!isAdmin) {
+      return NextResponse.json(
+        { error: authError || 'Admin access required' },
+        { status: authError === 'Unauthorized' ? 401 : 403 }
+      )
+    }
     
     const supabase = createClient()
     const { ticketId } = await request.json()
