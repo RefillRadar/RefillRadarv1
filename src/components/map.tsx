@@ -81,7 +81,7 @@ export default function Map({ center, zoom, radius, pharmacies }: MapProps) {
       circleRef.current = null
       leafletRef.current = null
     }
-  }, []) // Empty dependency array - only run on mount/unmount
+  }, [center, zoom]) // Include center and zoom in dependency array
 
   // Update markers and circle when props change
   useEffect(() => {

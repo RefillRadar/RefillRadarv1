@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Heart, MapPin, Phone, DollarSign, CheckCircle, Star, Clock, Shield, Bell, LogOut, User, Sun, Moon, Crown, ChevronDown } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/contexts/AuthContext"
+import { useScrollReveal } from "@/hooks/useScrollReveal"
 
 export default function LandingPage() {
   const [selectedPlan, setSelectedPlan] = useState('premium')
@@ -14,6 +15,13 @@ export default function LandingPage() {
   const [openFaqItems, setOpenFaqItems] = useState<{[key: string]: boolean}>({})
   const { user, loading, signOut } = useAuth()
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Scroll reveal hooks for different sections
+  const heroReveal = useScrollReveal(0.1)
+  const howItWorksReveal = useScrollReveal(0.1)
+  const testimonialsReveal = useScrollReveal(0.1)
+  const pricingReveal = useScrollReveal(0.1)
+  const faqReveal = useScrollReveal(0.1)
 
   const handleSignOut = async () => {
     await signOut()
@@ -101,7 +109,47 @@ export default function LandingPage() {
   }, [])
   
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+    <>
+      <style jsx>{`
+        @keyframes animationIn {
+          0% { 
+            opacity: 0; 
+            transform: translateY(30px); 
+            filter: blur(8px); 
+          }
+          100% { 
+            opacity: 1; 
+            transform: translateY(0); 
+            filter: blur(0px); 
+          }
+        }
+        
+        .scroll-reveal {
+          opacity: 0;
+          transform: translateY(30px);
+          filter: blur(8px);
+          transition: opacity 0.8s ease-out, transform 0.8s ease-out, filter 0.8s ease-out;
+        }
+        
+        .scroll-reveal.visible {
+          opacity: 1;
+          transform: translateY(0);
+          filter: blur(0px);
+        }
+        
+        .scroll-reveal-delay-1 {
+          transition-delay: 0.1s;
+        }
+        
+        .scroll-reveal-delay-2 {
+          transition-delay: 0.2s;
+        }
+        
+        .scroll-reveal-delay-3 {
+          transition-delay: 0.3s;
+        }
+      `}</style>
+      <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         {/* Sky Background - Same for both modes */}
@@ -208,7 +256,7 @@ export default function LandingPage() {
           </header>
 
           {/* Beta Badge */}
-          <div className="container mx-auto px-4 pt-8 sm:pt-12 text-center">
+          <div className="container mx-auto px-4 pt-12 sm:pt-16 text-center">
             <div className="inline-flex items-center justify-center">
               <div className="glassmorphism rounded-full px-3 py-2 text-xs sm:text-sm text-white border-0">
                 $1 PER PHARMACY CALLED
@@ -217,17 +265,20 @@ export default function LandingPage() {
           </div>
 
           {/* Hero Content */}
-          <div className="container mx-auto px-4 py-6 sm:py-8 text-center">
-            <div className="max-w-4xl mx-auto">
+          <div className="container mx-auto px-4 py-12 sm:py-16 text-center">
+            <div 
+              ref={heroReveal.ref}
+              className={`max-w-6xl mx-auto scroll-reveal ${heroReveal.isVisible ? 'visible' : ''}`}
+            >
               <h1 className="text-4xl sm:text-6xl md:text-8xl font-light text-white mb-6 sm:mb-8 leading-tight tracking-wide" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>
                 Find your medications
               </h1>
-              <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed font-normal px-2" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>
+              <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed font-normal px-2" style={{ fontFamily: 'Times, "Times New Roman", serif' }}>
                 RefillRadar is your personal Pharmacy Advisor. 
                 Track your medications, check availability and optimize 
                 your refill routine—all in one place.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6 sm:mb-8">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8 sm:mb-10">
                 <Link href="/login">
                   <Button 
                     size="lg" 
@@ -239,7 +290,7 @@ export default function LandingPage() {
               </div>
 
               {/* Trust indicators */}
-              <div className="flex flex-col items-center space-y-4 sm:space-y-6 mb-8 sm:mb-12">
+              <div className="flex flex-col items-center space-y-6 sm:space-y-8 mb-12 sm:mb-16">
                 <div className="flex items-center text-white/70 px-4">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -268,12 +319,18 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+          {/* Extra bottom padding for hero section */}
+          <div className="pb-8 sm:pb-12"></div>
         </div>
       </section>
 
       {/* How It Works Section */}
       <section className={`py-12 sm:py-20 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <div className="container mx-auto px-4">
+          <div 
+            ref={howItWorksReveal.ref}
+            className={`scroll-reveal ${howItWorksReveal.isVisible ? 'visible' : ''}`}
+          >
           <div className="text-center mb-12 sm:mb-16">
             <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               How RefillRadar Works
@@ -286,7 +343,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
             {/* Step 1 Card */}
-            <div className="relative group">
+            <div className={`relative group scroll-reveal scroll-reveal-delay-1 ${howItWorksReveal.isVisible ? 'visible' : ''}`}>
               <div 
                 className="rounded-2xl h-64 sm:h-80 bg-cover bg-center relative overflow-hidden transition-transform duration-300 group-hover:scale-105"
                 style={{
@@ -313,7 +370,7 @@ export default function LandingPage() {
             </div>
 
             {/* Step 2 Card */}
-            <div className="relative group">
+            <div className={`relative group scroll-reveal scroll-reveal-delay-2 ${howItWorksReveal.isVisible ? 'visible' : ''}`}>
               <div 
                 className="rounded-2xl h-64 sm:h-80 bg-cover bg-center relative overflow-hidden transition-transform duration-300 group-hover:scale-105"
                 style={{
@@ -340,7 +397,7 @@ export default function LandingPage() {
             </div>
 
             {/* Step 3 Card */}
-            <div className="relative group">
+            <div className={`relative group scroll-reveal scroll-reveal-delay-3 ${howItWorksReveal.isVisible ? 'visible' : ''}`}>
               <div 
                 className="rounded-2xl h-64 sm:h-80 bg-cover bg-center relative overflow-hidden transition-transform duration-300 group-hover:scale-105"
                 style={{
@@ -366,12 +423,17 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+          </div>
         </div>
       </section>
 
       {/* Testimonials Section */}
       <section className={`py-12 sm:py-20 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
         <div className="container mx-auto px-4">
+          <div 
+            ref={testimonialsReveal.ref}
+            className={`scroll-reveal ${testimonialsReveal.isVisible ? 'visible' : ''}`}
+          >
           <div className="text-center mb-12 sm:mb-16">
             <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               What Our Users Say
@@ -382,7 +444,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
-            <div className="rounded-2xl p-6 sm:p-8 relative overflow-hidden" style={{
+            <div className={`rounded-2xl p-6 sm:p-8 relative overflow-hidden scroll-reveal scroll-reveal-delay-1 ${testimonialsReveal.isVisible ? 'visible' : ''}`} style={{
               background: 'radial-gradient(circle at 30% 20%, #60A5FA 0%, #3B82F6 25%, #1E40AF 70%, #1E3A8A 100%)'
             }}>
               <div className="relative z-10">
@@ -407,7 +469,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl p-6 sm:p-8 relative overflow-hidden" style={{
+            <div className={`rounded-2xl p-6 sm:p-8 relative overflow-hidden scroll-reveal scroll-reveal-delay-2 ${testimonialsReveal.isVisible ? 'visible' : ''}`} style={{
               background: 'radial-gradient(circle at 30% 20%, #4ADE80 0%, #22C55E 25%, #16A34A 70%, #15803D 100%)'
             }}>
               <div className="relative z-10">
@@ -432,7 +494,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl p-6 sm:p-8 relative overflow-hidden" style={{
+            <div className={`rounded-2xl p-6 sm:p-8 relative overflow-hidden scroll-reveal scroll-reveal-delay-3 ${testimonialsReveal.isVisible ? 'visible' : ''}`} style={{
               background: 'radial-gradient(circle at 30% 20%, #22D3EE 0%, #06B6D4 25%, #0891B2 70%, #0E7490 100%)'
             }}>
               <div className="relative z-10">
@@ -457,12 +519,17 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+          </div>
         </div>
       </section>
 
       {/* Choose Your Plan Section */}
       <section className={`py-12 sm:py-20 ${isDarkMode ? 'bg-black' : 'bg-gray-50'}`}>
         <div className="container mx-auto px-4">
+          <div 
+            ref={pricingReveal.ref}
+            className={`scroll-reveal ${pricingReveal.isVisible ? 'visible' : ''}`}
+          >
           <div className="text-center mb-12 sm:mb-20">
             <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               Choose Your Plan
@@ -474,7 +541,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto items-start">
             {/* Pay As You Go Plan */}
-            <div className="relative pt-6 h-full">
+            <div className={`relative pt-6 h-full scroll-reveal scroll-reveal-delay-1 ${pricingReveal.isVisible ? 'visible' : ''}`}>
               <div 
                 className={`cursor-pointer transition-all duration-300 backdrop-blur-sm rounded-2xl p-8 text-center relative overflow-hidden h-full flex flex-col ${
                   isDarkMode 
@@ -555,7 +622,7 @@ export default function LandingPage() {
             </div>
 
             {/* Base Plan */}
-            <div className="relative pt-6 h-full">
+            <div className={`relative pt-6 h-full scroll-reveal scroll-reveal-delay-2 ${pricingReveal.isVisible ? 'visible' : ''}`}>
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                 <span className="bg-green-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
                   RECOMMENDED
@@ -634,7 +701,7 @@ export default function LandingPage() {
             </div>
 
             {/* Unlimited Plan */}
-            <div className="relative pt-6 h-full">
+            <div className={`relative pt-6 h-full scroll-reveal scroll-reveal-delay-3 ${pricingReveal.isVisible ? 'visible' : ''}`}>
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                 <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
                   BEST VALUE
@@ -720,12 +787,17 @@ export default function LandingPage() {
             </div>
 
           </div>
+          </div>
         </div>
       </section>
 
       {/* FAQ Section */}
       <section className={`py-12 sm:py-20 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
         <div className="container mx-auto px-4">
+          <div 
+            ref={faqReveal.ref}
+            className={`scroll-reveal ${faqReveal.isVisible ? 'visible' : ''}`}
+          >
           <div className="text-center mb-12 sm:mb-16">
             <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               Frequently Asked Questions
@@ -749,7 +821,7 @@ export default function LandingPage() {
               </button>
               {openFaqItems.faq1 && (
                 <div className={`px-6 pb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  <p>Simply enter your medication name and location, and our system automatically contacts pharmacies in your area to check real-time availability and pricing. You'll receive ranked results showing which pharmacies have your medication in stock and at what price.</p>
+                  <p>Simply enter your medication name and location, and our system automatically contacts pharmacies in your area to check real-time availability and pricing. You&apos;ll receive ranked results showing which pharmacies have your medication in stock and at what price.</p>
                 </div>
               )}
             </div>
@@ -761,7 +833,7 @@ export default function LandingPage() {
                 className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50/5 transition-colors"
               >
                 <span className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  What's the difference between the pricing plans?
+                  What&apos;s the difference between the pricing plans?
                 </span>
                 <ChevronDown className={`h-5 w-5 transition-transform ${openFaqItems.faq2 ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
               </button>
@@ -823,7 +895,7 @@ export default function LandingPage() {
               </button>
               {openFaqItems.faq5 && (
                 <div className={`px-6 pb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  <p>Yes! You can cancel your subscription at any time with no penalties or fees. For pay-as-you-go users, there's no commitment at all - you only pay when you use the service. If you cancel a monthly plan, you'll continue to have access until the end of your billing period.</p>
+                  <p>Yes! You can cancel your subscription at any time with no penalties or fees. For pay-as-you-go users, there&apos;s no commitment at all - you only pay when you use the service. If you cancel a monthly plan, you&apos;ll continue to have access until the end of your billing period.</p>
                 </div>
               )}
             </div>
@@ -841,10 +913,11 @@ export default function LandingPage() {
               </button>
               {openFaqItems.faq6 && (
                 <div className={`px-6 pb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  <p>You can search for most prescription medications, including brand name and generic drugs. Our system works particularly well for common medications like ADHD treatments, diabetes medications, blood pressure medications, and more. If you're unsure whether we can help with a specific medication, try a search - it's only $1 per pharmacy contacted.</p>
+                  <p>You can search for most prescription medications, including brand name and generic drugs. Our system works particularly well for common medications like ADHD treatments, diabetes medications, blood pressure medications, and more. If you&apos;re unsure whether we can help with a specific medication, try a search - it&apos;s only $1 per pharmacy contacted.</p>
                 </div>
               )}
             </div>
+          </div>
           </div>
         </div>
       </section>
@@ -948,6 +1021,7 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   )
 }

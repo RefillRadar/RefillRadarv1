@@ -1,14 +1,30 @@
 import { Client } from '@upstash/qstash'
 import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 
-if (!process.env.QSTASH_URL || !process.env.QSTASH_TOKEN) {
-  throw new Error('QSTASH_URL and QSTASH_TOKEN environment variables are required')
+// Initialize QStash client lazily to avoid build-time errors
+let qstashClient: Client | null = null
+
+export function getQStashClient(): Client {
+  if (!qstashClient) {
+    if (!process.env.QSTASH_URL || !process.env.QSTASH_TOKEN) {
+      throw new Error('QSTASH_URL and QSTASH_TOKEN environment variables are required')
+    }
+    
+    qstashClient = new Client({
+      baseUrl: process.env.QSTASH_URL,
+      token: process.env.QSTASH_TOKEN,
+    })
+  }
+  
+  return qstashClient
 }
 
-export const qstash = new Client({
-  baseUrl: process.env.QSTASH_URL,
-  token: process.env.QSTASH_TOKEN,
-})
+// Export for backward compatibility
+export const qstash = {
+  get publishJSON() {
+    return getQStashClient().publishJSON.bind(getQStashClient())
+  }
+}
 
 // Job types
 export interface PharmacyCallJob {
