@@ -14,7 +14,7 @@ export async function GET() {
         .select('*', { count: 'exact', head: true })
       tableChecks.push({ table: 'searches', exists: true, count: searchCount })
     } catch (error) {
-      tableChecks.push({ table: 'searches', exists: false, error: error.message })
+      tableChecks.push({ table: 'searches', exists: false, error: (error as Error).message })
     }
 
     try {
@@ -23,7 +23,7 @@ export async function GET() {
         .select('*', { count: 'exact', head: true })
       tableChecks.push({ table: 'queue_jobs', exists: true, count: queueCount })
     } catch (error) {
-      tableChecks.push({ table: 'queue_jobs', exists: false, error: error.message })
+      tableChecks.push({ table: 'queue_jobs', exists: false, error: (error as Error).message })
     }
 
     try {
@@ -32,7 +32,7 @@ export async function GET() {
         .select('*', { count: 'exact', head: true })
       tableChecks.push({ table: 'calls', exists: true, count: callsCount })
     } catch (error) {
-      tableChecks.push({ table: 'calls', exists: false, error: error.message })
+      tableChecks.push({ table: 'calls', exists: false, error: (error as Error).message })
     }
 
     try {
@@ -41,7 +41,7 @@ export async function GET() {
         .select('*', { count: 'exact', head: true })
       tableChecks.push({ table: 'users', exists: true, count: usersCount })
     } catch (error) {
-      tableChecks.push({ table: 'users', exists: false, error: error.message })
+      tableChecks.push({ table: 'users', exists: false, error: (error as Error).message })
     }
 
     const allTablesExist = tableChecks.every(check => check.exists)
