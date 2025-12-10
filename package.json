@@ -21,6 +21,7 @@
     "@upstash/qstash": "^2.8.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns-tz": "^3.2.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.445.0",
     "next": "14.2.13",

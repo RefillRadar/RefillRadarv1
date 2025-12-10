@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { checkAdminAuth } from '@/lib/auth/admin'
+import { checkAdminAuth, createAdminErrorResponse } from '@/lib/auth/admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -8,13 +8,11 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     // Check admin authentication
-    const { isAdmin, error: authError } = await checkAdminAuth()
+    const authResult = await checkAdminAuth()
     
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: authError || 'Admin access required' },
-        { status: authError === 'Unauthorized' ? 401 : 403 }
-      )
+    if (!authResult.isAdmin) {
+      const errorResponse = createAdminErrorResponse(authResult.error)
+      return NextResponse.json(errorResponse.body, { status: errorResponse.status })
     }
     
     const supabase = createClient()

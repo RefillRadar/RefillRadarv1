@@ -1,4 +1,5 @@
 import { Client } from '@upstash/qstash'
+import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 
 if (!process.env.QSTASH_URL || !process.env.QSTASH_TOKEN) {
   throw new Error('QSTASH_URL and QSTASH_TOKEN environment variables are required')
@@ -28,7 +29,7 @@ export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'ret
 // Business hours helper (9AM-7PM in pharmacy's timezone)
 export function isBusinessHours(timezone: string = 'America/New_York'): boolean {
   const now = new Date()
-  const pharmacyTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }))
+  const pharmacyTime = toZonedTime(now, timezone)
   const hour = pharmacyTime.getHours()
   const day = pharmacyTime.getDay()
   
@@ -41,23 +42,33 @@ export function getBusinessHoursDelay(timezone: string = 'America/New_York'): nu
   if (isBusinessHours(timezone)) return 0
   
   const now = new Date()
-  const pharmacyTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }))
-  const nextBusinessDay = new Date(pharmacyTime)
+  const pharmacyTime = toZonedTime(now, timezone)
   
-  // If it's Friday evening or weekend, move to Monday
   const currentDay = pharmacyTime.getDay()
+  const currentHour = pharmacyTime.getHours()
+  
+  let daysToAdd = 0
+  
+  // Calculate days to add for next business day
   if (currentDay === 0) { // Sunday
-    nextBusinessDay.setDate(nextBusinessDay.getDate() + 1)
-  } else if (currentDay === 6) { // Saturday
-    nextBusinessDay.setDate(nextBusinessDay.getDate() + 2)
-  } else if (pharmacyTime.getHours() >= 19) { // After hours on weekday
-    nextBusinessDay.setDate(nextBusinessDay.getDate() + 1)
+    daysToAdd = 1 // Monday
+  } else if (currentDay === 6) { // Saturday  
+    daysToAdd = 2 // Monday
+  } else if (currentDay === 5 && currentHour >= 19) { // Friday after hours
+    daysToAdd = 3 // Monday (Sat + Sun + Mon)
+  } else if (currentDay >= 1 && currentDay <= 4 && currentHour >= 19) { // Mon-Thu after hours
+    daysToAdd = 1 // Next day
   }
   
-  // Set to 9AM
+  // Create next business day at 9 AM in pharmacy timezone
+  const nextBusinessDay = new Date(pharmacyTime)
+  nextBusinessDay.setDate(nextBusinessDay.getDate() + daysToAdd)
   nextBusinessDay.setHours(9, 0, 0, 0)
   
-  return Math.max(0, nextBusinessDay.getTime() - now.getTime()) / 1000 // Return seconds
+  // Convert back to UTC
+  const nextBusinessDayUtc = fromZonedTime(nextBusinessDay, timezone)
+  
+  return Math.max(0, (nextBusinessDayUtc.getTime() - now.getTime()) / 1000)
 }
 
 // Retry delays: 5 min → 30 min → 2 hours
