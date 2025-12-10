@@ -22,6 +22,7 @@ export default function LandingPage() {
   const testimonialsReveal = useScrollReveal(0.1)
   const pricingReveal = useScrollReveal(0.1)
   const faqReveal = useScrollReveal(0.1)
+  const ctaReveal = useScrollReveal(0.1)
 
   const handleSignOut = async () => {
     await signOut()
@@ -919,6 +920,75 @@ export default function LandingPage() {
             </div>
           </div>
           </div>
+        </div>
+      </section>
+
+      {/* Call to Action Section */}
+      <section className="relative overflow-hidden py-16 sm:py-24">
+        {/* Sky Background - Same as hero */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url('/sky-bg.avif')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        />
+        {/* Overlay for better readability */}
+        <div className="absolute inset-0 bg-black/30" />
+        
+        {/* Content */}
+        <div className="relative z-10">
+          <div className="container mx-auto px-4 text-center">
+          <div 
+            ref={ctaReveal.ref}
+            className={`max-w-6xl mx-auto scroll-reveal ${ctaReveal.isVisible ? 'visible' : ''}`}
+          >
+            {/* Glassmorphic Container */}
+            <div className="glassmorphism rounded-3xl p-8 sm:p-12 border-0">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-white">
+                Ready to Find Your Medication?
+              </h2>
+              <p className="text-lg sm:text-xl mb-8 sm:mb-12 max-w-3xl mx-auto text-white/90">
+                Stop wasting time calling pharmacies. Let RefillRadar do the work for you. 
+                Get started today and find your medications faster than ever.
+              </p>
+              
+              <div className="flex flex-col items-center gap-4 sm:gap-6 justify-center">
+                <Link href="/login">
+                  <Button 
+                    size="lg" 
+                    className="glassmorphism glassmorphism-hover text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-lg border-0 w-full sm:w-auto max-w-xs"
+                  >
+                    GET STARTED →
+                  </Button>
+                </Link>
+                <div className="text-sm text-white/70">
+                  <span>No commitment • Only $1 per pharmacy called</span>
+                </div>
+              </div>
+
+              {/* Trust indicators */}
+              <div className="mt-12 sm:mt-16 flex items-center justify-center space-x-8 text-center">
+                <div>
+                  <div className="text-2xl sm:text-3xl font-bold text-white">1000+</div>
+                  <div className="text-xs sm:text-sm uppercase tracking-wide text-white/60">Happy Users</div>
+                </div>
+                <div className="w-px h-8 bg-white/20"></div>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-bold text-white">15K+</div>
+                  <div className="text-xs sm:text-sm uppercase tracking-wide text-white/60">Searches</div>
+                </div>
+                <div className="w-px h-8 bg-white/20"></div>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-bold text-white">$50K+</div>
+                  <div className="text-xs sm:text-sm uppercase tracking-wide text-white/60">Saved</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         </div>
       </section>
 
